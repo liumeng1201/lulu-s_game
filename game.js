@@ -1,5 +1,13 @@
 const WIN_SCORE = 10;
 const MAX_LIVES = 3;
+const ENCOURAGEMENT_DURATION = 2000;
+const ENCOURAGEMENTS = [
+  "太棒了，已经完成一半啦！",
+  "继续加油，胜利就在前面！",
+  "你的反应越来越快啦！",
+  "好厉害，又接住一颗！",
+  "只差一点点就成功啦！",
+];
 
 const elements = {
   gameArea: document.querySelector("#gameArea"),
@@ -21,6 +29,7 @@ const elements = {
   pauseButton: document.querySelector("#pauseButton"),
   pauseBadge: document.querySelector("#pauseBadge"),
   soundButton: document.querySelector("#soundButton"),
+  encouragement: document.querySelector("#encouragement"),
 };
 
 const state = {
@@ -39,6 +48,7 @@ const state = {
 };
 
 let audioContext;
+let encouragementTimer;
 
 function playTone(frequency, duration, type = "sine") {
   if (!state.soundOn) return;
@@ -85,8 +95,25 @@ function showCatchPop() {
   pop.addEventListener("animationend", () => pop.remove());
 }
 
+function hideEncouragement() {
+  clearTimeout(encouragementTimer);
+  encouragementTimer = undefined;
+  elements.encouragement.classList.add("hidden");
+  elements.encouragement.textContent = "";
+}
+
+function showEncouragement() {
+  clearTimeout(encouragementTimer);
+  const halfwayScore = Math.ceil(WIN_SCORE / 2);
+  const messageIndex = (state.score - halfwayScore) % ENCOURAGEMENTS.length;
+  elements.encouragement.textContent = ENCOURAGEMENTS[messageIndex];
+  elements.encouragement.classList.remove("hidden");
+  encouragementTimer = setTimeout(hideEncouragement, ENCOURAGEMENT_DURATION);
+}
+
 function finishGame(won) {
   state.running = false;
+  hideEncouragement();
   cancelAnimationFrame(state.animationId);
   elements.star.classList.remove("playing");
   elements.pauseButton.classList.add("hidden");
@@ -117,7 +144,11 @@ function update(delta) {
     showCatchPop();
     playTone(520 + state.score * 25, 0.18, "triangle");
     resetStar();
-    if (state.score >= WIN_SCORE) finishGame(true);
+    if (state.score >= WIN_SCORE) {
+      finishGame(true);
+    } else if (state.score >= Math.ceil(WIN_SCORE / 2)) {
+      showEncouragement();
+    }
   } else if (state.starY > height) {
     state.lives -= 1;
     elements.gameArea.classList.add("shake");
@@ -139,6 +170,7 @@ function gameLoop(time) {
 
 function startGame() {
   const { width } = gameBounds();
+  hideEncouragement();
   state.running = true;
   state.paused = false;
   state.score = 0;

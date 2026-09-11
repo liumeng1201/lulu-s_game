@@ -68,6 +68,10 @@ button { font: inherit; }
 .basket { position: absolute; z-index: 3; bottom: 25px; left: 50%; width: 82px; height: 68px; transform: translateX(-50%); will-change: left; }
 .basket-body { position: absolute; bottom: 0; font-size: 63px; line-height: 1; filter: drop-shadow(0 7px 5px rgba(99,67,80,.2)); }
 .basket-handle { position: absolute; top: 2px; left: 19px; width: 45px; height: 36px; border: 6px solid #9b6335; border-bottom: 0; border-radius: 30px 30px 0 0; }
+.encouragement { position: absolute; z-index: 4; top: 18%; left: 50%; width: max-content; max-width: calc(100% - 40px); padding: 12px 22px; color: #52388d; border: 3px solid rgba(255,255,255,.9); border-radius: 99px; background: linear-gradient(135deg, #fffdf4, #ffe991); box-shadow: 0 8px 22px rgba(72,45,126,.2); transform: translateX(-50%); font-size: clamp(15px, 2.5vw, 19px); font-weight: 800; text-align: center; transition: opacity .2s ease, transform .2s ease, visibility .2s; }
+.encouragement::before { margin-right: 7px; content: "✨"; }
+.encouragement::after { margin-left: 7px; content: "⭐"; }
+.encouragement.hidden { visibility: hidden; opacity: 0; transform: translateX(-50%) scale(.75); }
 .overlay-panel { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; flex-direction: column; justify-content: center; padding: 24px; text-align: center; background: rgba(91,68,157,.37); backdrop-filter: blur(4px); transition: opacity .25s ease; }
 .overlay-panel.hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .overlay-panel h1, .overlay-panel h2 { margin: 1px 0 8px; color: white; font-family: "STKaiti", "KaiTi", "Microsoft YaHei", sans-serif; font-size: clamp(40px, 7vw, 62px); font-weight: 700; text-shadow: 0 3px 0 rgba(77,46,126,.25); }
@@ -103,6 +107,7 @@ kbd { display: inline-grid; width: 28px; height: 25px; margin: 5px 2px 0; place-
   .scoreboard { grid-template-columns: 70px 1fr 90px; gap: 8px; padding: 10px 8px; }
   .mission { font-size: 11px; }
   .game-area { min-height: 410px; height: 61vh; }
+  .encouragement { top: 16%; padding: 10px 14px; }
   .controls { grid-template-columns: 75px 1fr 75px; padding: 12px; }
   .control-tip span { display: block; }
 }
