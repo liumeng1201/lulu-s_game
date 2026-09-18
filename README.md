@@ -47,3 +47,14 @@ games/catch-stars/game.js          游戏逻辑
 ## 发布到互联网
 
 项目通过 GitHub Actions 发布到 GitHub Pages。第一次发布前，在仓库 **Settings → Pages** 中将 **Source** 设为 **GitHub Actions**，然后把代码合并或推送到 `main` 分支。之后每次更新 `main` 都会自动重新发布。
+
+## 开发分支
+
+本地开发统一使用 `codex` 分支。首次克隆仓库后可运行：
+
+```bash
+git switch -c codex
+git push -u origin codex
+```
+
+后续提交通过 Pull Request 合并到 `main`，避免直接修改发布分支。
