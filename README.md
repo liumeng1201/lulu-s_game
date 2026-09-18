@@ -5,6 +5,7 @@
 ## 已有游戏
 
 - **接星星**：移动篮子接住星星，接住 10 颗就能获胜；漏掉 3 颗后本轮结束。
+- **五子棋**：支持人人对战和人机对战，人机模式可选择简单、中等或困难难度。
 
 ## 开始游戏
 
@@ -25,6 +26,13 @@ python3 -m http.server 4173
 - 点击右上角的声音按钮可以打开或关闭音效。
 - 点击游戏页顶部的“游戏大厅”可返回首页。
 
+“五子棋”支持以下操作：
+
+- 选择“人人对战”与身边的朋友轮流落子，或选择“人机对战”挑战电脑。
+- 人机对战提供简单、中等、困难三种难度，玩家执黑棋先手。
+- 使用鼠标或触摸棋盘交叉点落子；也可使用方向键移动光标，按回车或空格落子。
+- 对局中可以悔棋、重新开始或返回模式选择。
+
 ## 项目结构
 
 ```text
@@ -34,6 +42,10 @@ assets/images/                     游戏封面资源
 games/catch-stars/index.html       “接星星”游戏页面
 games/catch-stars/game.css         游戏样式
 games/catch-stars/game.js          游戏逻辑
+games/gomoku/index.html            “五子棋”游戏页面
+games/gomoku/game.css              棋盘与响应式样式
+games/gomoku/game.js               页面交互与绘制逻辑
+games/gomoku/engine.mjs            五子棋规则与电脑算法
 .github/workflows/deploy-pages.yml GitHub Pages 发布流程
 ```
 

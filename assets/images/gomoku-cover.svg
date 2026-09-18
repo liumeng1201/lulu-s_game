@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">五子棋游戏封面</title>
+  <desc id="desc">熊猫在紫色星空下的木质棋盘上下五子棋</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7153c9"/><stop offset="1" stop-color="#b18de8"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3d18c"/><stop offset="1" stop-color="#d99f51"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="9" stdDeviation="10" flood-color="#3b246d" flood-opacity=".3"/></filter>
+  </defs>
+  <rect width="800" height="500" rx="35" fill="url(#sky)"/>
+  <g fill="#fff" opacity=".55"><circle cx="90" cy="75" r="5"/><circle cx="210" cy="115" r="3"/><circle cx="687" cy="89" r="5"/><circle cx="740" cy="190" r="3"/><path d="M115 173l5 12 12 5-12 5-5 12-5-12-12-5 12-5z"/><path d="M654 151l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/></g>
+  <g transform="translate(73 61)" filter="url(#shadow)">
+    <circle cx="94" cy="90" r="75" fill="#fff4d5" stroke="#fff" stroke-width="8"/>
+    <circle cx="47" cy="40" r="27" fill="#30283c"/><circle cx="141" cy="40" r="27" fill="#30283c"/>
+    <ellipse cx="68" cy="83" rx="21" ry="28" fill="#30283c" transform="rotate(25 68 83)"/><ellipse cx="120" cy="83" rx="21" ry="28" fill="#30283c" transform="rotate(-25 120 83)"/>
+    <circle cx="72" cy="80" r="6" fill="#fff"/><circle cx="116" cy="80" r="6" fill="#fff"/><ellipse cx="94" cy="111" rx="12" ry="8" fill="#30283c"/>
+    <path d="M84 124q10 11 20 0" fill="none" stroke="#30283c" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(275 72) rotate(-3 225 180)" filter="url(#shadow)">
+    <rect width="450" height="365" rx="25" fill="url(#wood)" stroke="#fff3d2" stroke-width="10"/>
+    <g stroke="#76533e" stroke-width="3" opacity=".8">
+      <path d="M55 42v280M98 42v280M141 42v280M184 42v280M227 42v280M270 42v280M313 42v280M356 42v280M399 42v280"/>
+      <path d="M55 42h344M55 77h344M55 112h344M55 147h344M55 182h344M55 217h344M55 252h344M55 287h344M55 322h344"/>
+    </g>
+    <g fill="#30283c" stroke="#6f657a" stroke-width="2"><circle cx="184" cy="112" r="15"/><circle cx="227" cy="147" r="15"/><circle cx="270" cy="182" r="15"/><circle cx="313" cy="217" r="15"/><circle cx="356" cy="252" r="15"/></g>
+    <g fill="#fffaf0" stroke="#d5ccd8" stroke-width="2"><circle cx="141" cy="182" r="15"/><circle cx="184" cy="217" r="15"/><circle cx="227" cy="217" r="15"/><circle cx="270" cy="252" r="15"/></g>
+    <circle cx="270" cy="182" r="5" fill="#ffe26f"/>
+  </g>
+</svg>
