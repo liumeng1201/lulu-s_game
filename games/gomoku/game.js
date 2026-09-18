@@ -149,7 +149,9 @@ function undo() {
 
 function boardPosition(event) {
   const rect = elements.board.getBoundingClientRect(); const { padding, gap } = canvasMetrics();
-  const col = Math.round((event.clientX - rect.left - padding) / gap); const row = Math.round((event.clientY - rect.top - padding) / gap);
+  const x = event.clientX - rect.left - elements.board.clientLeft;
+  const y = event.clientY - rect.top - elements.board.clientTop;
+  const col = Math.round((x - padding) / gap); const row = Math.round((y - padding) / gap);
   return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE ? [row, col] : null;
 }
 
