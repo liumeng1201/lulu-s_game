@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">露露接星星游戏封面</title>
+  <desc id="desc">紫色星空下，小兔子拿着篮子接住金色星星</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7259c8"/><stop offset=".62" stop-color="#a88ce4"/><stop offset="1" stop-color="#f4bac8"/>
+    </linearGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#fff6a5"/><stop offset="1" stop-color="#ffbd3f"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#3f276f" flood-opacity=".28"/></filter>
+  </defs>
+  <rect width="800" height="500" rx="32" fill="url(#sky)"/>
+  <g fill="#fff" opacity=".72">
+    <circle cx="86" cy="76" r="4"/><circle cx="168" cy="153" r="7"/><circle cx="270" cy="60" r="4"/>
+    <circle cx="608" cy="84" r="6"/><circle cx="711" cy="161" r="4"/><circle cx="542" cy="188" r="3"/>
+  </g>
+  <g fill="#fff" opacity=".28">
+    <ellipse cx="105" cy="262" rx="105" ry="24"/><circle cx="78" cy="239" r="39"/><circle cx="139" cy="230" r="51"/>
+    <ellipse cx="713" cy="281" rx="125" ry="28"/><circle cx="670" cy="254" r="49"/><circle cx="743" cy="242" r="59"/>
+  </g>
+  <path d="M0 421 Q170 363 342 421 T800 408 V500 H0Z" fill="#fff0dc"/>
+  <path d="M0 455 Q175 405 376 454 T800 442 V500 H0Z" fill="#fff8ed"/>
+  <g filter="url(#shadow)">
+    <path d="M382 61l17 43 46 3-36 29 11 45-38-25-39 25 12-45-36-29 46-3z" fill="url(#star)" stroke="#fff4b4" stroke-width="7"/>
+    <path d="M228 123l9 22 23 2-18 14 6 23-20-13-19 13 6-23-19-14 24-2z" fill="#ffe677"/>
+    <path d="M563 132l10 24 26 2-20 16 6 25-22-14-21 14 6-25-20-16 26-2z" fill="#ffe677"/>
+  </g>
+  <g transform="translate(365 276)" filter="url(#shadow)">
+    <path d="M-54 30c-17-58-3-128 20-126 24 2 18 70 12 99M54 30C71-28 57-98 34-96 10-94 16-26 22 3" fill="#fff9f4" stroke="#ead9e8" stroke-width="6"/>
+    <ellipse cx="0" cy="47" rx="74" ry="68" fill="#fffaf5" stroke="#ead9e8" stroke-width="6"/>
+    <circle cx="-25" cy="36" r="6" fill="#493363"/><circle cx="25" cy="36" r="6" fill="#493363"/>
+    <path d="M-6 54q6 8 12 0" fill="none" stroke="#e88191" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="-42" cy="55" r="11" fill="#ffb5c4" opacity=".65"/><circle cx="42" cy="55" r="11" fill="#ffb5c4" opacity=".65"/>
+  </g>
+  <g transform="translate(270 369)" filter="url(#shadow)">
+    <path d="M38 24c12-72 202-72 214 0" fill="none" stroke="#9b6335" stroke-width="14"/>
+    <path d="M0 21h290l-27 103H26z" fill="#d99548" stroke="#9b6335" stroke-width="8"/>
+    <path d="M20 53h250M14 84h261M80 24l10 99M145 24v100M210 24l-10 99" fill="none" stroke="#f4c576" stroke-width="8" opacity=".82"/>
+  </g>
+</svg>
