@@ -1,10 +1,10 @@
-# 露露游戏屋
+# 六六游戏屋
 
 一个适合孩子在浏览器中游玩的小游戏集合。首页以自适应宫格展示已经完成的游戏，可在 PC、iPad 和手机浏览器中访问。
 
 ## 已有游戏
 
-- **露露接星星**：移动篮子接住星星，接住 10 颗就能获胜；漏掉 3 颗后本轮结束。
+- **接星星**：移动篮子接住星星，接住 10 颗就能获胜；漏掉 3 颗后本轮结束。
 
 ## 开始游戏
 
@@ -18,7 +18,7 @@ python3 -m http.server 4173
 
 ## 操作方法
 
-“露露接星星”支持以下操作：
+“接星星”支持以下操作：
 
 - 键盘：按 `←`、`→` 移动篮子，按空格键暂停或继续。
 - 手机或平板：按住页面下方的左右按钮。
@@ -31,7 +31,7 @@ python3 -m http.server 4173
 index.html                         游戏大厅
 assets/css/home.css                大厅布局与响应式样式
 assets/images/                     游戏封面资源
-games/catch-stars/index.html       “露露接星星”游戏页面
+games/catch-stars/index.html       “接星星”游戏页面
 games/catch-stars/game.css         游戏样式
 games/catch-stars/game.js          游戏逻辑
 .github/workflows/deploy-pages.yml GitHub Pages 发布流程
