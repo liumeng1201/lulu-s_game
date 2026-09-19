@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="在九路、十三路或十九路棋盘上体验围棋。" />
+    <meta name="theme-color" content="#547f68" />
+    <title>围棋｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-piece" aria-hidden="true">◉</span><span>围棋</span></div>
+        <button id="soundButton" class="icon-button" type="button" aria-label="关闭声音" title="声音开关">🔊</button>
+      </header>
+
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="scoreboard">
+          <div class="player-card active" id="blackCard"><span class="stone black"></span><span><small>黑棋 · 提 <b id="blackCaptures">0</b></small><strong id="blackName">玩家一</strong></span></div>
+          <div class="turn-status"><span id="modeBadge">人人 · 九路</span><strong id="turnText" aria-live="polite">准备开始</strong></div>
+          <div class="player-card" id="whiteCard"><span><small>白棋 · 提 <b id="whiteCaptures">0</b></small><strong id="whiteName">玩家二</strong></span><span class="stone white"></span></div>
+        </div>
+
+        <div class="board-stage">
+          <canvas id="board" width="760" height="760" tabindex="0" aria-label="围棋棋盘。使用方向键移动，按回车或空格落子。"></canvas>
+          <div id="scoringPanel" class="scoring-panel hidden" aria-live="polite">
+            <strong>终局确认</strong>
+            <span id="scoringText">点击棋盘上的死棋进行标记</span>
+            <div>
+              <button id="resumeButton" class="secondary-button" type="button">继续对局</button>
+              <button id="confirmScoreButton" class="primary-button compact" type="button">确认死棋</button>
+            </div>
+          </div>
+          <div id="modePanel" class="overlay-panel">
+            <div class="mascot" aria-hidden="true">🦊</div>
+            <p class="eyebrow">纵横十九道</p>
+            <h1 id="gameTitle">选择对局设置</h1>
+            <div class="choice-row" aria-label="游戏模式">
+              <button class="choice-button selected" data-mode="pvp" type="button" aria-pressed="true">👥 人人对战</button>
+              <button class="choice-button" data-mode="ai" type="button" aria-pressed="false">🤖 人机对战</button>
+            </div>
+            <div id="difficultyGroup" class="option-group hidden">
+              <span>电脑难度</span>
+              <div class="segmented"><button data-difficulty="easy" type="button">简单</button><button class="selected" data-difficulty="medium" type="button">中等</button><button data-difficulty="hard" type="button">困难</button></div>
+            </div>
+            <div class="option-group">
+              <span>棋盘大小</span>
+              <div class="segmented"><button class="selected" data-size="9" type="button">九路</button><button data-size="13" type="button">十三路</button><button data-size="19" type="button">十九路</button></div>
+            </div>
+            <button id="startButton" class="primary-button" type="button">▶ 开始游戏</button>
+            <div class="mini-tip">中国规则 · 黑贴 3¾ 子 · 连续停着后数子</div>
+          </div>
+
+          <div id="resultPanel" class="overlay-panel hidden" aria-live="polite">
+            <div class="result-emoji" aria-hidden="true">🏆</div>
+            <p class="eyebrow">本局结果</p>
+            <h2 id="resultTitle">黑棋获胜</h2>
+            <p id="resultMessage"></p>
+            <div id="scoreDetails" class="score-details"></div>
+            <div class="result-actions"><button id="restartButton" class="primary-button" type="button">再玩一局</button><button id="resultModeButton" class="secondary-button" type="button">更换设置</button></div>
+          </div>
+        </div>
+
+        <div class="controls" aria-label="对局操作">
+          <button id="undoButton" class="control-button" type="button" disabled>↶ <span>悔棋</span></button>
+          <button id="passButton" class="control-button" type="button" disabled>🏳 <span>停一手</span></button>
+          <p class="control-tip">连续两次停着后数子<br /><span>方向键 + 回车也可落子</span></p>
+          <button id="restartControl" class="control-button" type="button">↻ <span>重开</span></button>
+          <button id="modeButton" class="control-button" type="button">⚙ <span>设置</span></button>
+        </div>
+      </section>
+      <p id="notice" class="footer-tip" aria-live="polite">落子占地，也要留心棋子的气 ✨</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
