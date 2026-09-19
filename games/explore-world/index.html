@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="在家、学校、医院和超市之间自由探索，与小世界里的居民聊聊天。" />
+    <meta name="theme-color" content="#7655d6" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237655d6'/%3E%3Cpath d='M12 33 32 15l20 18v19H12z' fill='%23ffe27a'/%3E%3Cpath d='M27 52V38h10v14' fill='%23fff'/%3E%3C/svg%3E" />
+    <title>探索小世界｜六六游戏屋</title>
+    <link rel="stylesheet" href="./game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-icon" aria-hidden="true">🌍</span><span>探索小世界</span></div>
+        <button id="soundButton" class="icon-button" type="button" aria-label="关闭声音">🔊</button>
+      </header>
+
+      <section class="game-card" aria-labelledby="sceneTitle">
+        <div class="statusbar">
+          <div><span class="status-label">当前位置</span><strong id="sceneTitle">家 · 客厅</strong></div>
+          <p id="sceneHint" aria-live="polite">点击地面移动，点击人物聊天</p>
+          <span class="save-status" id="saveStatus">已自动保存</span>
+        </div>
+        <div id="game" class="game-stage" aria-label="探索小世界游戏区域"></div>
+        <div class="controls-tip">
+          <span><b aria-hidden="true">☝️</b> 点击或触摸地面移动</span>
+          <span><b aria-hidden="true">💬</b> 点击人物开始对话</span>
+          <span><b aria-hidden="true">🚪</b> 从门口前往其他区域</span>
+        </div>
+      </section>
+      <p class="footer-tip">小世界只有白天，每一个角落都有人在认真生活 ☀️</p>
+    </main>
+
+    <dialog id="dialogue" class="dialogue-card" aria-labelledby="dialogueName">
+      <div class="dialogue-person">
+        <span id="dialogueAvatar" aria-hidden="true">🙂</span>
+        <strong id="dialogueName">居民</strong>
+      </div>
+      <p id="dialogueText"></p>
+      <form method="dialog"><button type="submit">继续探索</button></form>
+    </dialog>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
