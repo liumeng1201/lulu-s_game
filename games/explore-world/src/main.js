@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import worldMapUrl from "../assets/world-map.png";
+import characterAtlasUrl from "../assets/character-atlas.png";
 import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
 import { loadSave, savePosition } from "./save-system.js";
 
@@ -33,7 +34,11 @@ function tone(frequency = 420) {
 
 function showDialogue(npc) {
   ui.dialogueName.textContent = npc.name;
-  ui.dialogueAvatar.textContent = npc.avatar;
+  const column = npc.frame % 4;
+  const row = Math.floor(npc.frame / 4);
+  ui.dialogueAvatar.textContent = "";
+  ui.dialogueAvatar.style.backgroundImage = `url(${characterAtlasUrl})`;
+  ui.dialogueAvatar.style.backgroundPosition = `${column * 33.333}% ${row * 33.333}%`;
   ui.dialogueText.textContent = Phaser.Utils.Array.GetRandom(npc.lines);
   ui.dialogue.showModal();
   tone(560);
@@ -46,7 +51,10 @@ function setUi(title, hint) {
 
 class BootScene extends Phaser.Scene {
   constructor() { super("boot"); }
-  preload() { this.load.image("world-map", worldMapUrl); }
+  preload() {
+    this.load.image("world-map", worldMapUrl);
+    this.load.image("characters", characterAtlasUrl);
+  }
   create() {
     const save = loadSave();
     const target = save.sceneId === WORLD_SCENE || AREAS[save.sceneId] ? save.sceneId : "home-living";
@@ -77,13 +85,50 @@ class WorldMapScene extends Phaser.Scene {
   }
 }
 
-function makePerson(scene, x, y, avatar, tint = 0x7655d6, scale = 1) {
-  const shadow = scene.add.ellipse(0,32,66,20,0x3f315c,.18);
-  const body = scene.add.circle(0,0,32,tint).setStrokeStyle(5,0xffffff,.9);
-  const face = scene.add.text(0,-4,avatar,{fontSize:'44px'}).setOrigin(.5);
-  const person = scene.add.container(x,y,[shadow,body,face]).setScale(scale);
-  person.setSize(96,108);
+function characterFrame(npc, index = 0) {
+  const named = { "妈妈":4, "爸爸":5, "爷爷":6, "奶奶":7, "弟弟":8, "王医生":9, "陈护士":10, "导诊护士":10, "收银员":12, "理货员":13 };
+  if (named[npc.name] !== undefined) return named[npc.name];
+  if (npc.role === "student") return npc.avatar === "👧" ? 2 : 1;
+  if (npc.role === "teacher") return 3;
+  if (npc.role === "doctor") return 9;
+  if (npc.role === "nurse") return 10;
+  if (npc.role === "patient") return 11;
+  if (npc.role === "cashier") return 12;
+  if (npc.role === "staff") return 13;
+  if (npc.role === "customer") return 14 + (index % 2);
+  return 4 + (index % 4);
+}
+
+function makePerson(scene, x, y, frame, scale = 1) {
+  const source = scene.textures.get("characters").getSourceImage();
+  const cellWidth = source.width / 4;
+  const cellHeight = source.height / 4;
+  const column = frame % 4;
+  const row = Math.floor(frame / 4);
+  const shadow = scene.add.ellipse(0,40,68,20,0x3f315c,.18);
+  const sprite = scene.add.image(0,-13,"characters")
+    .setOrigin((column + .5) / 4,(row + .5) / 4)
+    .setCrop(column * cellWidth,row * cellHeight,cellWidth,cellHeight)
+    .setScale(126 / cellWidth);
+  const visual = scene.add.container(0,0,[sprite]);
+  const person = scene.add.container(x,y,[shadow,visual]).setScale(scale);
+  person.setSize(104,126).setData("visual",visual);
   return person;
+}
+
+function animateWalk(scene, person, duration) {
+  const visual = person.getData("visual");
+  scene.tweens.killTweensOf(visual);
+  visual.setPosition(0,0).setAngle(-2);
+  scene.tweens.add({
+    targets: visual,
+    y: -7,
+    angle: 2,
+    duration: 120,
+    yoyo: true,
+    repeat: Math.max(0,Math.ceil(duration / 240) - 1),
+    onComplete: () => visual.setPosition(0,0).setAngle(0),
+  });
 }
 
 class AreaScene extends Phaser.Scene {
@@ -96,7 +141,7 @@ class AreaScene extends Phaser.Scene {
     setUi(`${location.name} · ${area.name}`, "点击地面移动，点击人物聊天");
     this.drawRoom(area, location);
     this.obstacles = [];
-    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 640, this.saved?.sceneId === this.areaId ? this.saved.y : 560, "🧒", 0x7655d6, 1.08).setDepth(20);
+    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 480, this.saved?.sceneId === this.areaId ? this.saved.y : 560, 0, 1.08).setDepth(20);
     this.player.setData("isPlayer", true);
     this.createDoors(area);
     this.createNpcs(area);
@@ -144,10 +189,11 @@ class AreaScene extends Phaser.Scene {
       const columns = Math.min(6, Math.ceil(Math.sqrt(area.npcs.length)));
       const x = 270 + (index % columns) * (420 / Math.max(1,columns-1));
       const y = 285 + Math.floor(index / columns) * 130;
-      const hue=[0xe7789d,0x65a9db,0x6fc38a,0xe4a14a][index%4];
-      const person=makePerson(this,x,y,npc.avatar,hue,.9).setDepth(15).setInteractive({useHandCursor:true});
-      person.setData("interactiveRole","npc").setData("npc",npc).setData("home",{x,y});
-      person.on("pointerup",(pointer,localX,localY,event)=>{ event.stopPropagation(); showDialogue(npc); });
+      const frame = characterFrame(npc,index);
+      const dialogueNpc = { ...npc, frame };
+      const person=makePerson(this,x,y,frame,.9).setDepth(15).setInteractive({useHandCursor:true});
+      person.setData("interactiveRole","npc").setData("npc",dialogueNpc).setData("home",{x,y});
+      person.on("pointerup",(pointer,localX,localY,event)=>{ event.stopPropagation(); showDialogue(dialogueNpc); });
       return person;
     });
   }
@@ -158,7 +204,9 @@ class AreaScene extends Phaser.Scene {
       if (Math.random() > .68) return;
       const home=npc.getData("home");
       const radius=["student","customer"].includes(npc.getData("npc").role)?65:35;
-      this.tweens.add({targets:npc,x:Phaser.Math.Clamp(home.x+Phaser.Math.Between(-radius,radius),220,740),y:Phaser.Math.Clamp(home.y+Phaser.Math.Between(-35,35),240,590),duration:900+index*35,ease:'Sine.easeInOut'});
+      const duration = 900 + index * 35;
+      this.tweens.add({targets:npc,x:Phaser.Math.Clamp(home.x+Phaser.Math.Between(-radius,radius),220,740),y:Phaser.Math.Clamp(home.y+Phaser.Math.Between(-35,35),240,590),duration,ease:'Sine.easeInOut'});
+      animateWalk(this,npc,duration);
     });
   }
 
@@ -166,10 +214,12 @@ class AreaScene extends Phaser.Scene {
     const targetX=Phaser.Math.Clamp(x,180,790); const targetY=Phaser.Math.Clamp(y,230,620);
     this.tweens.killTweensOf(this.player);
     const distance=Phaser.Math.Distance.Between(this.player.x,this.player.y,targetX,targetY);
-    this.tweens.add({targets:this.player,x:targetX,y:targetY,duration:Math.max(180,distance*2.1),ease:'Linear',onComplete:()=>{
+    const duration = Math.max(180,distance*2.1);
+    this.tweens.add({targets:this.player,x:targetX,y:targetY,duration,ease:'Linear',onComplete:()=>{
       savePosition(this.areaId,this.player.x,this.player.y);
       ui.save.textContent="已自动保存";
     }});
+    animateWalk(this,this.player,duration);
     ui.save.textContent="正在保存…";
     tone(290);
   }

@@ -32,7 +32,7 @@ button, a { font: inherit; }
 .dialogue-card { width: min(520px, calc(100% - 28px)); padding: 24px; color: var(--ink); border: 6px solid #fff; border-radius: 28px; background: linear-gradient(145deg,#fff,#f7f1ff); box-shadow: 0 24px 80px rgba(49,34,96,.35); }
 .dialogue-card::backdrop { background: rgba(47,31,89,.45); backdrop-filter: blur(3px); }
 .dialogue-person { display: flex; align-items: center; gap: 13px; }
-.dialogue-person span { display: grid; width: 56px; height: 56px; place-items: center; border-radius: 18px; background: #efe8ff; font-size: 34px; }
+.dialogue-person span { display: grid; width: 74px; height: 74px; flex: none; place-items: center; border-radius: 20px; background-color: #efe8ff; background-repeat: no-repeat; background-size: 400% 400%; box-shadow: inset 0 0 0 3px #fff; }
 .dialogue-person strong { font-size: 22px; }
 .dialogue-card p { min-height: 54px; margin: 16px 0 20px; font-size: 17px; line-height: 1.7; }
 .dialogue-card form { text-align: right; }
