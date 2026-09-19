@@ -4,8 +4,12 @@ import characterAtlasUrl from "../assets/character-atlas.png";
 import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
 import { loadSave, savePosition } from "./save-system.js";
 
-const WIDTH = 960;
-const HEIGHT = 720;
+const BASE_WIDTH = 960;
+const BASE_HEIGHT = 720;
+const WIDTH = 1280;
+const HEIGHT = 560;
+const scaleX = (value) => value * WIDTH / BASE_WIDTH;
+const scaleY = (value) => value * HEIGHT / BASE_HEIGHT;
 const ui = {
   title: document.querySelector("#sceneTitle"),
   hint: document.querySelector("#sceneHint"),
@@ -68,12 +72,16 @@ class WorldMapScene extends Phaser.Scene {
     activeScene = this;
     setUi("世界地图", "点击一个地点开始探索");
     this.add.image(WIDTH / 2, HEIGHT / 2, "world-map").setDisplaySize(WIDTH, HEIGHT);
-    this.add.rectangle(WIDTH/2,45,520,58,0x493080,.76).setStrokeStyle(3,0xffffff,.8);
-    this.add.text(WIDTH/2,45,"今天想去哪里？",{fontFamily:'Microsoft YaHei',fontSize:'27px',fontStyle:'bold',color:'#fff'}).setOrigin(.5);
+    this.add.rectangle(WIDTH/2,scaleY(45),520,scaleY(58),0x493080,.76).setStrokeStyle(3,0xffffff,.8);
+    this.add.text(WIDTH/2,scaleY(45),"今天想去哪里？",{fontFamily:'Microsoft YaHei',fontSize:'27px',fontStyle:'bold',color:'#fff'}).setOrigin(.5);
     Object.values(LOCATIONS).forEach((location) => {
       const h = location.hotspots;
-      const zone = this.add.zone(h.x,h.y,h.width,h.height).setInteractive({ useHandCursor:true });
-      const chip = this.add.container(h.x,h.y + h.height*.42);
+      const x = scaleX(h.x);
+      const width = scaleX(h.width);
+      const y = scaleY(h.y);
+      const height = scaleY(h.height);
+      const zone = this.add.zone(x,y,width,height).setInteractive({ useHandCursor:true });
+      const chip = this.add.container(x,y + height*.42);
       const bg = this.add.rectangle(0,0,150,48,0xffffff,.92).setStrokeStyle(4,location.color);
       const label = this.add.text(0,0,`${location.icon} ${location.name}`,{fontFamily:'Microsoft YaHei',fontSize:'20px',fontStyle:'bold',color:'#493080'}).setOrigin(.5);
       chip.add([bg,label]);
@@ -105,11 +113,11 @@ function makePerson(scene, x, y, frame, scale = 1) {
   const cellHeight = source.height / 4;
   const column = frame % 4;
   const row = Math.floor(frame / 4);
-  const shadow = scene.add.ellipse(0,20 * scale,34 * scale,10 * scale,0x3f315c,.18);
-  const sprite = scene.add.image(0,-6.5 * scale,"characters")
+  const shadow = scene.add.ellipse(0,30 * scale,51 * scale,15 * scale,0x3f315c,.18);
+  const sprite = scene.add.image(0,-9.75 * scale,"characters")
     .setOrigin((column + .5) / 4,(row + .5) / 4)
     .setCrop(column * cellWidth,row * cellHeight,cellWidth,cellHeight)
-    .setScale((63 / cellWidth) * scale);
+    .setScale((94.5 / cellWidth) * scale);
   const visual = scene.add.container(0,0,[sprite]);
   const person = scene.add.container(x,y,[shadow,visual]);
   person.setSize(104,126).setData("visual",visual);
@@ -141,7 +149,7 @@ class AreaScene extends Phaser.Scene {
     setUi(`${location.name} · ${area.name}`, "点击地面移动，点击人物聊天");
     this.drawRoom(area, location);
     this.obstacles = [];
-    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 480, this.saved?.sceneId === this.areaId ? this.saved.y : 560, 2, 1.08).setDepth(20);
+    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 640, this.saved?.sceneId === this.areaId ? this.saved.y : scaleY(560), 2, 1.08).setDepth(20);
     this.player.setData("isPlayer", true);
     this.createDoors(area);
     this.createNpcs(area);
@@ -155,10 +163,10 @@ class AreaScene extends Phaser.Scene {
 
   drawRoom(area, location) {
     this.add.rectangle(WIDTH/2,HEIGHT/2,WIDTH,HEIGHT,area.palette[0]);
-    this.add.polygon(WIDTH/2,420,[0,-190,480,-285,480,210,0,305,-480,210,-480,-285],area.palette[1]).setStrokeStyle(8,0xffffff,.55);
-    this.add.polygon(WIDTH/2,520,[-430,-120,0,-210,430,-120,0,-28],0xffffff,.28);
-    this.add.text(45,38,`${location.icon} ${location.name} · ${area.name}`,{fontFamily:'Microsoft YaHei',fontSize:'28px',fontStyle:'bold',color:'#493080',backgroundColor:'#ffffffdd',padding:{x:16,y:10}}).setDepth(5);
-    const spots = [[145,210],[815,220],[215,500],[755,505],[480,175]];
+    this.add.polygon(WIDTH/2,scaleY(420),[0,scaleY(-190),WIDTH/2,scaleY(-285),WIDTH/2,scaleY(210),0,scaleY(305),-WIDTH/2,scaleY(210),-WIDTH/2,scaleY(-285)],area.palette[1]).setStrokeStyle(8,0xffffff,.55);
+    this.add.polygon(WIDTH/2,scaleY(520),[-WIDTH*.448,scaleY(-120),0,scaleY(-210),WIDTH*.448,scaleY(-120),0,scaleY(-28)],0xffffff,.28);
+    this.add.text(45,scaleY(38),`${location.icon} ${location.name} · ${area.name}`,{fontFamily:'Microsoft YaHei',fontSize:'28px',fontStyle:'bold',color:'#493080',backgroundColor:'#ffffffdd',padding:{x:16,y:10}}).setDepth(5);
+    const spots = [[145,210],[815,220],[215,500],[755,505],[480,175]].map(([x,y])=>[scaleX(x),scaleY(y)]);
     area.furniture.forEach((item,index)=>{
       const [x,y]=spots[index%spots.length];
       this.add.ellipse(x,y+24,95,28,0x493080,.12);
@@ -169,10 +177,10 @@ class AreaScene extends Phaser.Scene {
   createDoors(area) {
     const doors = [];
     if (area.type === "hub") {
-      doors.push({x:850,y:410,label:area.nextLabel,target:area.next,icon:"🚪"});
-      doors.push({x:110,y:410,label:"返回世界地图",target:WORLD_SCENE,icon:"🗺️"});
+      doors.push({x:scaleX(850),y:scaleY(410),label:area.nextLabel,target:area.next,icon:"🚪"});
+      doors.push({x:scaleX(110),y:scaleY(410),label:"返回世界地图",target:WORLD_SCENE,icon:"🗺️"});
     } else {
-      doors.push({x:110,y:410,label:area.backLabel,target:area.back,icon:"🚪"});
+      doors.push({x:scaleX(110),y:scaleY(410),label:area.backLabel,target:area.back,icon:"🚪"});
     }
     doors.forEach((door)=>{
       const container=this.add.container(door.x,door.y).setDepth(10).setSize(150,150).setInteractive({useHandCursor:true});
@@ -187,8 +195,8 @@ class AreaScene extends Phaser.Scene {
   createNpcs(area) {
     this.npcs = area.npcs.map((npc,index)=>{
       const columns = Math.min(6, Math.ceil(Math.sqrt(area.npcs.length)));
-      const x = 270 + (index % columns) * (420 / Math.max(1,columns-1));
-      const y = 285 + Math.floor(index / columns) * 130;
+      const x = scaleX(270) + (index % columns) * (scaleX(420) / Math.max(1,columns-1));
+      const y = scaleY(285 + Math.floor(index / columns) * 130);
       const frame = characterFrame(npc,index);
       const dialogueNpc = { ...npc, frame };
       const person=makePerson(this,x,y,frame,.9).setDepth(15).setInteractive({useHandCursor:true});
@@ -203,15 +211,15 @@ class AreaScene extends Phaser.Scene {
     this.npcs.forEach((npc,index)=>{
       if (Math.random() > .68) return;
       const home=npc.getData("home");
-      const radius=["student","customer"].includes(npc.getData("npc").role)?65:35;
+      const radius=["student","customer"].includes(npc.getData("npc").role)?scaleX(65):scaleX(35);
       const duration = 900 + index * 35;
-      this.tweens.add({targets:npc,x:Phaser.Math.Clamp(home.x+Phaser.Math.Between(-radius,radius),220,740),y:Phaser.Math.Clamp(home.y+Phaser.Math.Between(-35,35),240,590),duration,ease:'Sine.easeInOut'});
+      this.tweens.add({targets:npc,x:Phaser.Math.Clamp(home.x+Phaser.Math.Between(-radius,radius),scaleX(220),scaleX(740)),y:Phaser.Math.Clamp(home.y+Phaser.Math.Between(scaleY(-35),scaleY(35)),scaleY(240),scaleY(590)),duration,ease:'Sine.easeInOut'});
       animateWalk(this,npc,duration);
     });
   }
 
   movePlayer(x,y) {
-    const targetX=Phaser.Math.Clamp(x,180,790); const targetY=Phaser.Math.Clamp(y,230,620);
+    const targetX=Phaser.Math.Clamp(x,scaleX(180),scaleX(790)); const targetY=Phaser.Math.Clamp(y,scaleY(230),scaleY(620));
     this.tweens.killTweensOf(this.player);
     const distance=Phaser.Math.Distance.Between(this.player.x,this.player.y,targetX,targetY);
     const duration = Math.max(180,distance*2.1);
