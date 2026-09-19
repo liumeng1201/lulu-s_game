@@ -105,13 +105,13 @@ function makePerson(scene, x, y, frame, scale = 1) {
   const cellHeight = source.height / 4;
   const column = frame % 4;
   const row = Math.floor(frame / 4);
-  const shadow = scene.add.ellipse(0,40,68,20,0x3f315c,.18);
-  const sprite = scene.add.image(0,-13,"characters")
+  const shadow = scene.add.ellipse(0,20 * scale,34 * scale,10 * scale,0x3f315c,.18);
+  const sprite = scene.add.image(0,-6.5 * scale,"characters")
     .setOrigin((column + .5) / 4,(row + .5) / 4)
     .setCrop(column * cellWidth,row * cellHeight,cellWidth,cellHeight)
-    .setScale(126 / cellWidth);
+    .setScale((63 / cellWidth) * scale);
   const visual = scene.add.container(0,0,[sprite]);
-  const person = scene.add.container(x,y,[shadow,visual]).setScale(scale);
+  const person = scene.add.container(x,y,[shadow,visual]);
   person.setSize(104,126).setData("visual",visual);
   return person;
 }
@@ -122,7 +122,7 @@ function animateWalk(scene, person, duration) {
   visual.setPosition(0,0).setAngle(-2);
   scene.tweens.add({
     targets: visual,
-    y: -7,
+    y: -4,
     angle: 2,
     duration: 120,
     yoyo: true,
@@ -141,7 +141,7 @@ class AreaScene extends Phaser.Scene {
     setUi(`${location.name} · ${area.name}`, "点击地面移动，点击人物聊天");
     this.drawRoom(area, location);
     this.obstacles = [];
-    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 480, this.saved?.sceneId === this.areaId ? this.saved.y : 560, 0, 1.08).setDepth(20);
+    this.player = makePerson(this, this.saved?.sceneId === this.areaId ? this.saved.x : 480, this.saved?.sceneId === this.areaId ? this.saved.y : 560, 2, 1.08).setDepth(20);
     this.player.setData("isPlayer", true);
     this.createDoors(area);
     this.createNpcs(area);
