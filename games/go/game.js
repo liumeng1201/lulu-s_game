@@ -1,5 +1,7 @@
 import { BLACK, WHITE, boardKey, createBoard, getGroup, playMove, scoreBoard } from "./engine.mjs";
+import { startPlayLimit } from "../../assets/js/play-limit.js";
 
+const SAVE_KEY = "lulu-go-save-v1";
 const names = { [BLACK]: "黑棋", [WHITE]: "白棋" };
 const difficultyNames = { easy: "简单", medium: "中等", hard: "困难" };
 const sizeNames = { 9: "九路", 13: "十三路", 19: "十九路" };
@@ -16,6 +18,38 @@ const state = {
 const draft = { mode: "pvp", difficulty: "medium", size: 9 };
 let aiWorker;
 let audioContext;
+let resumeAiAfterLimit = false;
+
+function saveGame() {
+  const value = {
+    version: 1, mode: state.mode, difficulty: state.difficulty, size: state.size, board: state.board,
+    currentPlayer: state.currentPlayer, running: state.running, history: state.history, captures: state.captures,
+    consecutivePasses: state.consecutivePasses, soundOn: state.soundOn, cursor: state.cursor, lastMove: state.lastMove,
+    settingsOpen: state.settingsOpen, scoring: state.scoring, deadStones: [...state.deadStones],
+    scoringConfirmations: [...state.scoringConfirmations], draft: { ...draft },
+    resultOpen: !elements.resultPanel.classList.contains("hidden"), notice: elements.notice.textContent,
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+}
+
+function loadGame() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const validSize = [9, 13, 19].includes(value?.size);
+    const validBoard = validSize && Array.isArray(value.board) && value.board.length === value.size && value.board.every((row) => Array.isArray(row) && row.length === value.size);
+    if (value?.version !== 1 || !validBoard || !["pvp", "ai"].includes(value.mode)) return null;
+    state.mode = value.mode; state.difficulty = ["easy", "medium", "hard"].includes(value.difficulty) ? value.difficulty : "medium";
+    state.size = value.size; state.board = value.board; state.currentPlayer = value.currentPlayer === WHITE ? WHITE : BLACK;
+    state.running = Boolean(value.running); state.thinking = false; state.history = Array.isArray(value.history) ? value.history : [];
+    state.captures = value.captures ?? { [BLACK]: 0, [WHITE]: 0 }; state.consecutivePasses = Number(value.consecutivePasses) || 0;
+    state.soundOn = value.soundOn !== false; state.cursor = value.cursor ?? { row: Math.floor(value.size / 2), col: Math.floor(value.size / 2) };
+    state.lastMove = value.lastMove ?? null; state.settingsOpen = Boolean(value.settingsOpen); state.scoring = Boolean(value.scoring);
+    state.deadStones = new Set(Array.isArray(value.deadStones) ? value.deadStones : []);
+    state.scoringConfirmations = new Set(Array.isArray(value.scoringConfirmations) ? value.scoringConfirmations : []);
+    Object.assign(draft, value.draft ?? { mode: state.mode, difficulty: state.difficulty, size: state.size });
+    return value;
+  } catch { return null; }
+}
 
 function restartAiWorker() {
   aiWorker?.terminate();
@@ -136,6 +170,7 @@ function finishGame() {
   elements.scoreDetails.innerHTML = `<span>黑棋 ${score.black.toFixed(1)}<small>棋子 ${score.blackStones} · 地 ${score.blackTerritory}</small></span><span>白棋 ${score.white.toFixed(1)}<small>棋子 ${score.whiteStones} · 地 ${score.whiteTerritory} · 贴目 ${score.komi}</small></span>`;
   elements.resultPanel.classList.remove("hidden");
   playTone(score.winner === BLACK ? 620 : 720, .4); updateStatus(); elements.restartButton.focus();
+  saveGame();
 }
 
 function placeStone(row, col, automated = false) {
@@ -150,6 +185,7 @@ function placeStone(row, col, automated = false) {
   elements.notice.textContent = result.captured.length ? `${names[player]}提掉了 ${result.captured.length} 颗棋子！` : `${names[state.currentPlayer]}请落子`;
   playTone(player === BLACK ? 260 : 370); drawBoard(); updateStatus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+  saveGame();
   return true;
 }
 
@@ -162,10 +198,12 @@ function passTurn(automated = false) {
   if (state.consecutivePasses >= 2) { enterScoring(); return; }
   drawBoard(); updateStatus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+  saveGame();
 }
 
 function requestAiMove() {
   state.thinking = true; updateStatus();
+  saveGame();
   const requestId = ++state.aiRequestId;
   aiWorker.postMessage({ requestId, board: state.board, difficulty: state.difficulty, player: WHITE, previousBoardKey: previousPositionKey(), opponentPassed: state.consecutivePasses === 1 });
 }
@@ -177,11 +215,13 @@ function resetGame() {
   const center = Math.floor(state.size / 2); state.cursor = { row: center, col: center };
   elements.modePanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden"); elements.scoringPanel.classList.add("hidden"); elements.notice.textContent = "黑棋先行，落子占地，也要留心棋子的气 ✨";
   drawBoard(); updateStatus(); elements.board.focus();
+  saveGame();
 }
 
 function showModePanel() {
   cancelAi(); Object.assign(draft, { mode: state.mode, difficulty: state.difficulty, size: state.size });
   state.running = false; state.settingsOpen = true; state.scoring = false; elements.scoringPanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden"); elements.modePanel.classList.remove("hidden"); updateStatus();
+  saveGame();
 }
 
 function undo() {
@@ -191,11 +231,13 @@ function undo() {
   for (let index = 0; index < steps; index += 1) restored = state.history.pop();
   Object.assign(state, restored); state.running = true; state.thinking = false;
   elements.resultPanel.classList.add("hidden"); elements.notice.textContent = "已撤回上一步"; drawBoard(); updateStatus(); elements.board.focus();
+  saveGame();
 }
 
 function enterScoring() {
   state.running = false; state.scoring = true; state.deadStones = new Set(); state.scoringConfirmations = new Set();
   elements.scoringPanel.classList.remove("hidden"); elements.notice.textContent = "点击棋盘上的死棋进行标记，双方确认后数子"; updateScoringStatus(); drawBoard(); updateStatus(); elements.board.focus();
+  saveGame();
 }
 
 function updateScoringStatus() {
@@ -209,6 +251,7 @@ function toggleDeadGroup(row, col) {
   const remove = group.every((point) => state.deadStones.has(point));
   for (const point of group) remove ? state.deadStones.delete(point) : state.deadStones.add(point);
   state.scoringConfirmations.clear(); updateScoringStatus(); drawBoard();
+  saveGame();
 }
 
 function confirmScoring() {
@@ -219,6 +262,7 @@ function confirmScoring() {
   if (state.mode === "ai" && state.currentPlayer === WHITE) {
     state.scoringConfirmations.add(WHITE); finishGame();
   }
+  saveGame();
 }
 
 function resumeGame() {
@@ -226,6 +270,42 @@ function resumeGame() {
   state.scoring = false; state.running = true; state.consecutivePasses = 0; state.deadStones.clear(); state.scoringConfirmations.clear();
   elements.scoringPanel.classList.add("hidden"); elements.notice.textContent = "对局继续"; drawBoard(); updateStatus(); elements.board.focus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+  saveGame();
+}
+
+function restoreUi(value) {
+  document.querySelectorAll("[data-mode]").forEach((button) => { const selected = button.dataset.mode === draft.mode; button.classList.toggle("selected", selected); button.setAttribute("aria-pressed", selected); });
+  document.querySelectorAll("[data-difficulty]").forEach((button) => { const selected = button.dataset.difficulty === draft.difficulty; button.classList.toggle("selected", selected); button.setAttribute("aria-pressed", selected); });
+  document.querySelectorAll("[data-size]").forEach((button) => { const selected = Number(button.dataset.size) === draft.size; button.classList.toggle("selected", selected); button.setAttribute("aria-pressed", selected); });
+  elements.difficultyGroup.classList.toggle("hidden", draft.mode !== "ai");
+  if (value) {
+    elements.modePanel.classList.toggle("hidden", !state.settingsOpen);
+    elements.scoringPanel.classList.toggle("hidden", !state.scoring);
+    elements.resultPanel.classList.toggle("hidden", !value.resultOpen);
+    elements.notice.textContent = value.notice || elements.notice.textContent;
+    if (state.scoring) updateScoringStatus();
+    if (value.resultOpen) {
+      const score = scoreBoard(state.board, undefined, state.deadStones);
+      elements.resultTitle.textContent = `${names[score.winner]}获胜！`;
+      elements.resultMessage.textContent = `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目`;
+      elements.scoreDetails.innerHTML = `<span>黑棋 ${score.black.toFixed(1)}<small>棋子 ${score.blackStones} · 地 ${score.blackTerritory}</small></span><span>白棋 ${score.white.toFixed(1)}<small>棋子 ${score.whiteStones} · 地 ${score.whiteTerritory} · 贴目 ${score.komi}</small></span>`;
+    }
+  }
+  elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇";
+  elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音");
+  drawBoard(); updateStatus();
+  if (state.running && state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+}
+
+function lockGame() {
+  saveGame();
+  resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === WHITE;
+  cancelAi(); updateStatus();
+}
+
+function resumeGameAfterLimit() {
+  if (resumeAiAfterLimit && state.running && state.currentPlayer === WHITE) requestAiMove();
+  resumeAiAfterLimit = false; saveGame();
 }
 
 function boardPosition(event) {
@@ -238,9 +318,9 @@ function selectButtons(selector, chosen) {
   document.querySelectorAll(selector).forEach((item) => { const selected = item === chosen; item.classList.toggle("selected", selected); item.setAttribute("aria-pressed", selected); });
 }
 
-document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => { draft.mode = button.dataset.mode; selectButtons("[data-mode]", button); elements.difficultyGroup.classList.toggle("hidden", draft.mode !== "ai"); }));
-document.querySelectorAll("[data-difficulty]").forEach((button) => button.addEventListener("click", () => { draft.difficulty = button.dataset.difficulty; selectButtons("[data-difficulty]", button); }));
-document.querySelectorAll("[data-size]").forEach((button) => button.addEventListener("click", () => { draft.size = Number(button.dataset.size); selectButtons("[data-size]", button); }));
+document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => { draft.mode = button.dataset.mode; selectButtons("[data-mode]", button); elements.difficultyGroup.classList.toggle("hidden", draft.mode !== "ai"); saveGame(); }));
+document.querySelectorAll("[data-difficulty]").forEach((button) => button.addEventListener("click", () => { draft.difficulty = button.dataset.difficulty; selectButtons("[data-difficulty]", button); saveGame(); }));
+document.querySelectorAll("[data-size]").forEach((button) => button.addEventListener("click", () => { draft.size = Number(button.dataset.size); selectButtons("[data-size]", button); saveGame(); }));
 elements.board.addEventListener("pointerup", (event) => { const position = boardPosition(event); if (!position) return; state.scoring ? toggleDeadGroup(...position) : placeStone(...position); });
 elements.board.addEventListener("keydown", (event) => {
   const offsets = { ArrowUp: [-1,0], ArrowDown: [1,0], ArrowLeft: [0,-1], ArrowRight: [0,1] };
@@ -251,7 +331,10 @@ elements.board.addEventListener("focus", drawBoard); elements.board.addEventList
 elements.startButton.addEventListener("click", resetGame); elements.restartButton.addEventListener("click", resetGame); elements.restartControl.addEventListener("click", resetGame);
 elements.undoButton.addEventListener("click", undo); elements.passButton.addEventListener("click", () => passTurn(false)); elements.modeButton.addEventListener("click", showModePanel); elements.resultModeButton.addEventListener("click", showModePanel);
 elements.resumeButton.addEventListener("click", resumeGame); elements.confirmScoreButton.addEventListener("click", confirmScoring);
-elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); });
+elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); saveGame(); });
 window.addEventListener("resize", drawBoard);
 restartAiWorker();
-drawBoard(); updateStatus();
+const savedGame = loadGame();
+restoreUi(savedGame);
+window.addEventListener("pagehide", saveGame);
+startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });

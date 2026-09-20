@@ -1,5 +1,8 @@
+import { startPlayLimit } from "../../assets/js/play-limit.js";
+
 const WIN_SCORE = 10;
 const MAX_LIVES = 3;
+const SAVE_KEY = "lulu-catch-stars-save-v1";
 const ENCOURAGEMENT_DURATION = 2000;
 const ENCOURAGEMENTS = [
   "太棒了，已经完成一半啦！",
@@ -49,6 +52,30 @@ const state = {
 
 let audioContext;
 let encouragementTimer;
+let pausedBeforePlayLimit = null;
+
+function saveGame() {
+  const value = {
+    version: 1, running: state.running, paused: pausedBeforePlayLimit ?? state.paused, score: state.score, lives: state.lives,
+    basketX: state.basketX, starX: state.starX, starY: state.starY, soundOn: state.soundOn,
+    resultOpen: !elements.resultPanel.classList.contains("hidden"), resultTitle: elements.resultTitle.textContent,
+    resultMessage: elements.resultMessage.textContent, resultEmoji: elements.resultEmoji.textContent,
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+}
+
+function loadGame() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (value?.version !== 1 || !Number.isFinite(value.score) || !Number.isFinite(value.lives)) return false;
+    state.running = Boolean(value.running); state.paused = Boolean(value.paused);
+    state.score = Math.max(0, Math.min(WIN_SCORE, value.score)); state.lives = Math.max(0, Math.min(MAX_LIVES, value.lives));
+    state.basketX = Number.isFinite(value.basketX) ? value.basketX : gameBounds().width / 2;
+    state.starX = Number.isFinite(value.starX) ? value.starX : gameBounds().width / 2;
+    state.starY = Number.isFinite(value.starY) ? value.starY : -60; state.soundOn = value.soundOn !== false;
+    return value;
+  } catch { return null; }
+}
 
 function playTone(frequency, duration, type = "sine") {
   if (!state.soundOn) return;
@@ -126,6 +153,7 @@ function finishGame(won) {
   elements.resultPanel.classList.remove("hidden");
   playTone(won ? 660 : 220, 0.5, won ? "triangle" : "sine");
   elements.restartButton.focus();
+  saveGame();
 }
 
 function update(delta) {
@@ -189,6 +217,7 @@ function startGame() {
   cancelAnimationFrame(state.animationId);
   state.animationId = requestAnimationFrame(gameLoop);
   elements.gameArea.focus();
+  saveGame();
 }
 
 function togglePause() {
@@ -198,6 +227,44 @@ function togglePause() {
   elements.pauseButton.setAttribute("aria-label", state.paused ? "继续游戏" : "暂停游戏");
   elements.pauseBadge.classList.toggle("hidden", !state.paused);
   state.lastTime = performance.now();
+  saveGame();
+}
+
+function restoreUi(value) {
+  elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇";
+  elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音");
+  if (state.running) {
+    elements.startPanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden");
+    elements.pauseButton.classList.remove("hidden"); elements.star.classList.add("playing");
+    elements.pauseButton.textContent = state.paused ? "▶" : "Ⅱ";
+    elements.pauseButton.setAttribute("aria-label", state.paused ? "继续游戏" : "暂停游戏");
+    elements.pauseBadge.classList.toggle("hidden", !state.paused);
+    state.lastTime = performance.now();
+    state.animationId = requestAnimationFrame(gameLoop);
+  } else if (value?.resultOpen) {
+    elements.startPanel.classList.add("hidden"); elements.resultPanel.classList.remove("hidden");
+    elements.resultTitle.textContent = value.resultTitle; elements.resultMessage.textContent = value.resultMessage;
+    elements.resultEmoji.textContent = value.resultEmoji;
+  }
+  render();
+}
+
+function lockGame() {
+  saveGame();
+  pausedBeforePlayLimit = state.paused;
+  if (state.running) state.paused = true;
+  setMovement("left", false); setMovement("right", false);
+}
+
+function resumeGameAfterLimit() {
+  if (state.running && pausedBeforePlayLimit !== null) {
+    state.paused = pausedBeforePlayLimit; state.lastTime = performance.now();
+    elements.pauseButton.textContent = state.paused ? "▶" : "Ⅱ";
+    elements.pauseButton.setAttribute("aria-label", state.paused ? "继续游戏" : "暂停游戏");
+    elements.pauseBadge.classList.toggle("hidden", !state.paused);
+  }
+  pausedBeforePlayLimit = null;
+  saveGame();
 }
 
 function setMovement(direction, active) {
@@ -242,10 +309,17 @@ elements.soundButton.addEventListener("click", () => {
   state.soundOn = !state.soundOn;
   elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇";
   elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音");
+  saveGame();
 });
 
 bindHoldButton(elements.leftButton, "left");
 bindHoldButton(elements.rightButton, "right");
-state.basketX = gameBounds().width / 2;
-resetStar();
-render();
+const savedGame = loadGame();
+if (!savedGame) {
+  state.basketX = gameBounds().width / 2;
+  resetStar();
+}
+restoreUi(savedGame);
+window.addEventListener("pagehide", saveGame);
+window.setInterval(saveGame, 1000);
+startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });

@@ -1,5 +1,7 @@
 import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, chooseAiMove, createBoard, isBoardFull } from "./engine.mjs";
+import { startPlayLimit } from "../../assets/js/play-limit.js";
 
+const SAVE_KEY = "lulu-gomoku-save-v1";
 const names = { [BLACK]: "黑棋", [WHITE]: "白棋" };
 const difficultyNames = { easy: "简单", medium: "中等", hard: "困难" };
 const elements = Object.fromEntries(["board", "modePanel", "difficultyGroup", "startButton", "resultPanel", "resultEmoji", "resultTitle", "resultMessage", "restartButton", "resultModeButton", "undoButton", "restartControl", "modeButton", "soundButton", "modeBadge", "turnText", "blackCard", "whiteCard", "blackName", "whiteName"].map((id) => [id, document.querySelector(`#${id}`)]));
@@ -7,6 +9,33 @@ const context = elements.board.getContext("2d");
 
 const state = { mode: "pvp", difficulty: "medium", board: createBoard(), currentPlayer: BLACK, running: false, thinking: false, winner: null, winningLine: [], history: [], soundOn: true, cursor: { row: 7, col: 7 }, aiTimer: null };
 let audioContext;
+let resumeAiAfterLimit = false;
+
+function saveGame() {
+  const value = {
+    version: 1, mode: state.mode, difficulty: state.difficulty, board: state.board,
+    currentPlayer: state.currentPlayer, running: state.running, winner: state.winner,
+    winningLine: state.winningLine, history: state.history, soundOn: state.soundOn,
+    cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"),
+    resultOpen: !elements.resultPanel.classList.contains("hidden"),
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+}
+
+function loadGame() {
+  try {
+    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
+    const validBoard = Array.isArray(value?.board) && value.board.length === BOARD_SIZE && value.board.every((row) => Array.isArray(row) && row.length === BOARD_SIZE);
+    if (value?.version !== 1 || !validBoard || !["pvp", "ai"].includes(value.mode)) return null;
+    state.mode = value.mode; state.difficulty = ["easy", "medium", "hard"].includes(value.difficulty) ? value.difficulty : "medium";
+    state.board = value.board; state.currentPlayer = value.currentPlayer === WHITE ? WHITE : BLACK;
+    state.running = Boolean(value.running); state.thinking = false; state.winner = value.winner;
+    state.winningLine = Array.isArray(value.winningLine) ? value.winningLine : [];
+    state.history = Array.isArray(value.history) ? value.history : []; state.soundOn = value.soundOn !== false;
+    state.cursor = Number.isInteger(value.cursor?.row) && Number.isInteger(value.cursor?.col) ? value.cursor : { row: 7, col: 7 };
+    return value;
+  } catch { return null; }
+}
 
 function playTone(frequency, duration, type = "sine") {
   if (!state.soundOn) return;
@@ -103,6 +132,7 @@ function finishGame(winner, line = []) {
     playTone(400, .35);
   }
   drawBoard(); updateStatus(); elements.resultPanel.classList.remove("hidden"); elements.restartButton.focus();
+  saveGame();
 }
 
 function placeStone(row, col) {
@@ -116,11 +146,13 @@ function placeStone(row, col) {
   state.currentPlayer = player === BLACK ? WHITE : BLACK;
   drawBoard(); updateStatus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+  saveGame();
   return true;
 }
 
 function requestAiMove() {
   state.thinking = true; updateStatus();
+  saveGame();
   state.aiTimer = setTimeout(() => {
     const move = chooseAiMove(state.board, state.difficulty, WHITE);
     state.thinking = false;
@@ -132,10 +164,12 @@ function resetGame() {
   clearTimeout(state.aiTimer); state.board = createBoard(); state.currentPlayer = BLACK; state.running = true; state.thinking = false; state.winner = null; state.winningLine = []; state.history = []; state.cursor = { row: 7, col: 7 };
   elements.modePanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden");
   drawBoard(); updateStatus(); elements.board.focus();
+  saveGame();
 }
 
 function showModePanel() {
   clearTimeout(state.aiTimer); state.running = false; state.thinking = false; elements.resultPanel.classList.add("hidden"); elements.modePanel.classList.remove("hidden"); updateStatus();
+  saveGame();
 }
 
 function undo() {
@@ -145,6 +179,42 @@ function undo() {
   for (let index = 0; index < count; index += 1) { const move = state.history.pop(); if (move) state.board[move.row][move.col] = EMPTY; }
   state.currentPlayer = state.mode === "ai" ? BLACK : (state.history.at(-1)?.player === BLACK ? WHITE : BLACK);
   drawBoard(); updateStatus(); elements.board.focus();
+  saveGame();
+}
+
+function restoreUi(value) {
+  document.querySelectorAll("[data-mode]").forEach((button) => { const selected = button.dataset.mode === state.mode; button.classList.toggle("selected", selected); button.setAttribute("aria-pressed", selected); });
+  document.querySelectorAll("[data-difficulty]").forEach((button) => { const selected = button.dataset.difficulty === state.difficulty; button.classList.toggle("selected", selected); button.setAttribute("aria-pressed", selected); });
+  elements.difficultyGroup.classList.toggle("hidden", state.mode !== "ai");
+  if (value) {
+    elements.modePanel.classList.toggle("hidden", !value.modeOpen);
+    elements.resultPanel.classList.toggle("hidden", !value.resultOpen);
+    if (value.resultOpen) {
+      if (state.winner) {
+        const playerWon = state.mode !== "ai" || state.winner === BLACK;
+        elements.resultEmoji.textContent = playerWon ? "🎉" : "🌟";
+        elements.resultTitle.textContent = state.mode === "ai" ? (state.winner === BLACK ? "你赢啦！" : "电脑获胜") : `${names[state.winner]}获胜！`;
+        elements.resultMessage.textContent = playerWon ? "漂亮的五连，太厉害啦！" : "这一步很精彩，再挑战一次吧！";
+      } else {
+        elements.resultEmoji.textContent = "🤝"; elements.resultTitle.textContent = "平局！"; elements.resultMessage.textContent = "棋盘下满了，双方都很厉害！";
+      }
+    }
+  }
+  elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇";
+  elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音");
+  drawBoard(); updateStatus();
+  if (state.running && state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
+}
+
+function lockGame() {
+  saveGame();
+  resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === WHITE;
+  clearTimeout(state.aiTimer); state.thinking = false; updateStatus();
+}
+
+function resumeGameAfterLimit() {
+  if (resumeAiAfterLimit && state.running && state.currentPlayer === WHITE) requestAiMove();
+  resumeAiAfterLimit = false; saveGame();
 }
 
 function boardPosition(event) {
@@ -158,11 +228,11 @@ function boardPosition(event) {
 document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => {
   state.mode = button.dataset.mode;
   document.querySelectorAll("[data-mode]").forEach((item) => { const selected = item === button; item.classList.toggle("selected", selected); item.setAttribute("aria-pressed", selected); });
-  elements.difficultyGroup.classList.toggle("hidden", state.mode !== "ai"); updateStatus();
+  elements.difficultyGroup.classList.toggle("hidden", state.mode !== "ai"); updateStatus(); saveGame();
 }));
 document.querySelectorAll("[data-difficulty]").forEach((button) => button.addEventListener("click", () => {
   state.difficulty = button.dataset.difficulty;
-  document.querySelectorAll("[data-difficulty]").forEach((item) => { const selected = item === button; item.classList.toggle("selected", selected); item.setAttribute("aria-pressed", selected); }); updateStatus();
+  document.querySelectorAll("[data-difficulty]").forEach((item) => { const selected = item === button; item.classList.toggle("selected", selected); item.setAttribute("aria-pressed", selected); }); updateStatus(); saveGame();
 }));
 elements.board.addEventListener("pointerup", (event) => { const position = boardPosition(event); if (position) placeStone(...position); });
 elements.board.addEventListener("keydown", (event) => {
@@ -172,6 +242,9 @@ elements.board.addEventListener("keydown", (event) => {
 });
 elements.board.addEventListener("focus", drawBoard); elements.board.addEventListener("blur", drawBoard);
 elements.startButton.addEventListener("click", resetGame); elements.restartButton.addEventListener("click", resetGame); elements.restartControl.addEventListener("click", resetGame); elements.undoButton.addEventListener("click", undo); elements.modeButton.addEventListener("click", showModePanel); elements.resultModeButton.addEventListener("click", showModePanel);
-elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); });
+elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); saveGame(); });
 window.addEventListener("resize", drawBoard);
-drawBoard(); updateStatus();
+const savedGame = loadGame();
+restoreUi(savedGame);
+window.addEventListener("pagehide", saveGame);
+startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
