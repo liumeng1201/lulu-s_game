@@ -54,7 +54,7 @@ function renderBoard() {
     cell.setAttribute("role", "gridcell");
     cell.setAttribute("aria-label", value ? (row + 1) + "行" + (col + 1) + "列，" + names[value] : (row + 1) + "行" + (col + 1) + "列，空位");
     cell.disabled = !state.running || state.thinking || value !== EMPTY;
-    cell.addEventListener("click", () => { state.cursor = { row, col }; placeMark(row, col); });
+    cell.addEventListener("click", () => { state.cursor = { row, col }; placeMark(row, col); elements.board.focus(); });
     elements.board.append(cell);
   }));
   elements.board.setAttribute("aria-activedescendant", "cell-" + state.cursor.row + "-" + state.cursor.col);
