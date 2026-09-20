@@ -2,8 +2,9 @@ import Phaser from "phaser";
 import worldMapUrl from "../assets/world-map.png";
 import characterAtlasUrl from "../assets/character-atlas.png";
 import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
-import { loadSave, savePosition } from "./save-system.js";
+import { SAVE_KEY, DEFAULT_SAVE, validateExploreSave } from "./save-system.js";
 import { startPlayLimit } from "../../../assets/js/play-limit.js";
+import { createVersionedGameStore, showSaveConflict } from "../../../assets/js/safe-storage.js";
 
 const BASE_WIDTH = 960;
 const BASE_HEIGHT = 720;
@@ -24,6 +25,10 @@ const ui = {
 let soundOn = true;
 let activeScene;
 let audioContext;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+
+function loadExploreSave() { return gameStore.load() ?? { ...DEFAULT_SAVE }; }
+function saveExplorePosition(sceneId, x, y) { return gameStore.save({ version: 3, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() }); }
 
 function tone(frequency = 420) {
   if (!soundOn) return;
@@ -61,7 +66,7 @@ class BootScene extends Phaser.Scene {
     this.load.image("characters", characterAtlasUrl);
   }
   create() {
-    const save = loadSave();
+    const save = loadExploreSave();
     const target = save.sceneId === WORLD_SCENE || AREAS[save.sceneId] ? save.sceneId : "home-living";
     this.scene.start(target === WORLD_SCENE ? WORLD_SCENE : "area", { areaId: target, saved: save });
   }
@@ -90,7 +95,7 @@ class WorldMapScene extends Phaser.Scene {
       zone.on("pointerout",()=>this.tweens.add({targets:chip,scale:1,duration:120}));
       zone.on("pointerup",()=>{ tone(500); this.scene.start("area",{areaId:location.hub}); });
     });
-    savePosition(WORLD_SCENE, WIDTH/2, HEIGHT/2);
+    saveExplorePosition(WORLD_SCENE, WIDTH/2, HEIGHT/2);
   }
 }
 
@@ -159,7 +164,7 @@ class AreaScene extends Phaser.Scene {
       this.movePlayer(pointer.worldX, pointer.worldY);
     });
     this.time.addEvent({ delay: 1600, loop: true, callback: ()=>this.moveNpcs() });
-    savePosition(this.areaId, this.player.x, this.player.y);
+    saveExplorePosition(this.areaId, this.player.x, this.player.y);
   }
 
   drawRoom(area, location) {
@@ -189,7 +194,7 @@ class AreaScene extends Phaser.Scene {
       const icon=this.add.text(0,-18,door.icon,{fontSize:'50px'}).setOrigin(.5);
       const label=this.add.text(0,42,door.label,{fontFamily:'Microsoft YaHei',fontSize:'15px',fontStyle:'bold',color:'#fff',align:'center',wordWrap:{width:120}}).setOrigin(.5);
       container.add([bg,icon,label]).setData("interactiveRole","door");
-      container.on("pointerup",(pointer,localX,localY,event)=>{ event.stopPropagation(); tone(470); savePosition(this.areaId,this.player.x,this.player.y); this.scene.start(door.target === WORLD_SCENE ? WORLD_SCENE : "area",door.target === WORLD_SCENE ? undefined : {areaId:door.target}); });
+      container.on("pointerup",(pointer,localX,localY,event)=>{ event.stopPropagation(); tone(470); saveExplorePosition(this.areaId,this.player.x,this.player.y); this.scene.start(door.target === WORLD_SCENE ? WORLD_SCENE : "area",door.target === WORLD_SCENE ? undefined : {areaId:door.target}); });
     });
   }
 
@@ -225,7 +230,7 @@ class AreaScene extends Phaser.Scene {
     const distance=Phaser.Math.Distance.Between(this.player.x,this.player.y,targetX,targetY);
     const duration = Math.max(180,distance*2.1);
     this.tweens.add({targets:this.player,x:targetX,y:targetY,duration,ease:'Linear',onComplete:()=>{
-      savePosition(this.areaId,this.player.x,this.player.y);
+      saveExplorePosition(this.areaId,this.player.x,this.player.y);
       ui.save.textContent="已自动保存";
     }});
     animateWalk(this,this.player,duration);
@@ -247,7 +252,7 @@ const game = new Phaser.Game({
 });
 
 function saveCurrentPosition() {
-  if (activeScene?.player) savePosition(activeScene.areaId, activeScene.player.x, activeScene.player.y);
+  if (activeScene?.player) saveExplorePosition(activeScene.areaId, activeScene.player.x, activeScene.player.y);
 }
 
 function lockGame() {

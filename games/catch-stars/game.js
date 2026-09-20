@@ -1,4 +1,6 @@
 import { startPlayLimit } from "../../assets/js/play-limit.js";
+import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
+import { validateCatchStarsSave } from "./save-state.js";
 
 const WIN_SCORE = 10;
 const MAX_LIVES = 3;
@@ -53,6 +55,7 @@ const state = {
 let audioContext;
 let encouragementTimer;
 let pausedBeforePlayLimit = null;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateCatchStarsSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -61,20 +64,15 @@ function saveGame() {
     resultOpen: !elements.resultPanel.classList.contains("hidden"), resultTitle: elements.resultTitle.textContent,
     resultMessage: elements.resultMessage.textContent, resultEmoji: elements.resultEmoji.textContent,
   };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+  gameStore.save(value);
 }
 
 function loadGame() {
-  try {
-    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (value?.version !== 1 || !Number.isFinite(value.score) || !Number.isFinite(value.lives)) return false;
-    state.running = Boolean(value.running); state.paused = Boolean(value.paused);
-    state.score = Math.max(0, Math.min(WIN_SCORE, value.score)); state.lives = Math.max(0, Math.min(MAX_LIVES, value.lives));
-    state.basketX = Number.isFinite(value.basketX) ? value.basketX : gameBounds().width / 2;
-    state.starX = Number.isFinite(value.starX) ? value.starX : gameBounds().width / 2;
-    state.starY = Number.isFinite(value.starY) ? value.starY : -60; state.soundOn = value.soundOn !== false;
-    return value;
-  } catch { return null; }
+  const value = gameStore.load();
+  if (!value) return null;
+  state.running = value.running; state.paused = value.paused; state.score = value.score; state.lives = value.lives;
+  state.basketX = value.basketX; state.starX = value.starX; state.starY = value.starY; state.soundOn = value.soundOn;
+  return value;
 }
 
 function playTone(frequency, duration, type = "sine") {

@@ -31,14 +31,36 @@ export function formatRemaining(milliseconds) {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-function readState(storage) {
-  try { return normalizePlayLimitState(JSON.parse(storage.getItem(STORAGE_KEY))); }
-  catch { return defaultPlayLimitState(); }
+export function transitionPlayLimit(value, { now, tabId: owner, visible }) {
+  const state = normalizePlayLimitState(value);
+  let changed = false;
+  if (state.blockedUntil || state.usedMs >= PLAY_LIMIT_MS) {
+    if (!state.blockedUntil) { state.blockedUntil = now + REST_DURATION_MS; changed = true; }
+    if (state.ownerId === owner) { state.ownerId = ""; state.leaseUntil = 0; changed = true; }
+    return { state, status: state.blockedUntil > now ? "resting" : "ready", changed };
+  }
+  if (!visible) {
+    if (state.ownerId === owner) {
+      state.usedMs += Math.max(0, now - state.updatedAt);
+      state.updatedAt = now; state.ownerId = ""; state.leaseUntil = 0; changed = true;
+      if (state.usedMs >= PLAY_LIMIT_MS) { state.usedMs = PLAY_LIMIT_MS; state.blockedUntil = now + REST_DURATION_MS; }
+    }
+    return { state, status: state.blockedUntil ? "resting" : "active", changed };
+  }
+  if (!state.ownerId || state.ownerId === owner || state.leaseUntil <= now) {
+    if (state.ownerId === owner) state.usedMs += Math.max(0, now - state.updatedAt);
+    state.ownerId = owner; state.updatedAt = now; state.leaseUntil = now + LEASE_MS; changed = true;
+    if (state.usedMs >= PLAY_LIMIT_MS) {
+      state.usedMs = PLAY_LIMIT_MS; state.blockedUntil = now + REST_DURATION_MS; state.ownerId = ""; state.leaseUntil = 0;
+      return { state, status: "resting", changed };
+    }
+  }
+  return { state, status: "active", changed };
 }
 
-function writeState(storage, value) {
-  try { storage.setItem(STORAGE_KEY, JSON.stringify(normalizePlayLimitState(value))); }
-  catch { /* A blocked storage backend falls back to this page's in-memory state. */ }
+export function resumePlayLimitState(value, now) {
+  const state = normalizePlayLimitState(value);
+  return state.blockedUntil > 0 && state.blockedUntil <= now ? { ...defaultPlayLimitState(), updatedAt: now } : null;
 }
 
 function ensureStyles() {
@@ -63,7 +85,7 @@ function createOverlay() {
       <p class="play-limit-eyebrow">休息时间</p>
       <h2 id="playLimitTitle">眼睛也要放个假</h2>
       <p class="play-limit-message">今天已经认真玩了 10 分钟，休息一会儿吧！</p>
-      <strong class="play-limit-countdown" aria-live="polite">01:00:00</strong>
+      <strong class="play-limit-countdown" role="timer">01:00:00</strong>
       <p class="play-limit-hint">倒计时结束后就可以回来继续游戏。</p>
       <button class="play-limit-continue" type="button" hidden>继续游戏</button>
       <a class="play-limit-home" href="${new URL("../../index.html", import.meta.url).href}">返回游戏大厅</a>
@@ -73,6 +95,7 @@ function createOverlay() {
 }
 
 export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage = localStorage } = {}) {
+  const stateStore = createSafeJsonStore(STORAGE_KEY, storage);
   ensureStyles();
   const overlay = createOverlay();
   const title = overlay.querySelector("h2");
@@ -83,19 +106,42 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
   const card = overlay.querySelector(".play-limit-card");
   let locked = false;
   let timer;
+  let previousFocus;
+  let backgroundStates = [];
+
+  function setBackgroundInert(active) {
+    if (active) {
+      backgroundStates = [...document.body.children].filter((item) => item !== overlay).map((item) => [item, item.inert]);
+      backgroundStates.forEach(([item]) => { item.inert = true; });
+    } else {
+      backgroundStates.forEach(([item, inert]) => { item.inert = inert; });
+      backgroundStates = [];
+    }
+  }
 
   function blockGameInput(event) {
-    if (locked && !event.target?.closest?.(".play-limit-overlay")) {
+    if (!locked) return;
+    if (!event.target?.closest?.(".play-limit-overlay")) {
       event.preventDefault();
       event.stopImmediatePropagation();
+      return;
+    }
+    if (event.key === "Tab") {
+      const focusable = [...overlay.querySelectorAll("button:not([hidden]), a[href]")];
+      const first = focusable[0]; const last = focusable.at(-1);
+      if (!first) { event.preventDefault(); card.focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
   }
 
   function showLocked(state, now) {
     if (!locked) {
       locked = true;
-      onLock();
+      previousFocus = document.activeElement;
+      try { onLock(); } catch (error) { console.error("Failed to save game before rest period", error); }
       overlay.hidden = false;
+      setBackgroundInert(true);
       card.focus();
     }
     overlay.hidden = false;
@@ -122,62 +168,32 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
     const wasLocked = locked;
     overlay.hidden = true;
     locked = false;
-    if (wasLocked) onResume();
+    if (wasLocked) {
+      setBackgroundInert(false);
+      try { onResume(); } catch (error) { console.error("Failed to resume game after rest period", error); }
+      if (previousFocus?.isConnected) previousFocus.focus();
+      previousFocus = undefined;
+    }
   }
 
   function flushAndRelease(now = Date.now()) {
-    const state = readState(storage);
-    if (state.ownerId !== tabId) return;
-    if (!locked) state.usedMs += Math.max(0, now - state.updatedAt);
-    state.updatedAt = now;
-    state.ownerId = "";
-    state.leaseUntil = 0;
-    if (state.usedMs >= PLAY_LIMIT_MS && !state.blockedUntil) state.blockedUntil = now + REST_DURATION_MS;
-    writeState(storage, state);
+    const result = transitionPlayLimit(stateStore.read(), { now, tabId, visible: false });
+    if (result.changed) stateStore.write(result.state);
   }
 
   function tick() {
     const now = Date.now();
-    const state = readState(storage);
-    const mustRest = state.blockedUntil > 0 || state.usedMs >= PLAY_LIMIT_MS;
-    if (mustRest) {
-      let changed = false;
-      if (!state.blockedUntil) { state.blockedUntil = now + REST_DURATION_MS; changed = true; }
-      if (state.ownerId === tabId) {
-        state.ownerId = "";
-        state.leaseUntil = 0;
-        changed = true;
-      }
-      if (changed) writeState(storage, state);
-      showLocked(state, now);
-      return;
-    }
-    hideOverlay();
-    if (document.hidden) {
-      flushAndRelease(now);
-      return;
-    }
-    if (!state.ownerId || state.ownerId === tabId || state.leaseUntil <= now) {
-      if (state.ownerId === tabId) state.usedMs += Math.max(0, now - state.updatedAt);
-      state.ownerId = tabId;
-      state.updatedAt = now;
-      state.leaseUntil = now + LEASE_MS;
-      if (state.usedMs >= PLAY_LIMIT_MS) {
-        state.usedMs = PLAY_LIMIT_MS;
-        state.blockedUntil = now + REST_DURATION_MS;
-        state.ownerId = "";
-        state.leaseUntil = 0;
-      }
-      writeState(storage, state);
-      if (state.blockedUntil) showLocked(state, now);
-    }
+    const result = transitionPlayLimit(stateStore.read(), { now, tabId, visible: !document.hidden });
+    if (result.changed) stateStore.write(result.state);
+    if (result.status === "resting" || result.status === "ready") showLocked(result.state, now);
+    else hideOverlay();
   }
 
   function resume() {
     const now = Date.now();
-    const state = readState(storage);
-    if (!state.blockedUntil || state.blockedUntil > now) return;
-    writeState(storage, { ...defaultPlayLimitState(), updatedAt: now });
+    const state = resumePlayLimitState(stateStore.read(), now);
+    if (!state) return;
+    stateStore.write(state);
     hideOverlay();
     tick();
   }
@@ -185,13 +201,16 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
   continueButton.addEventListener("click", resume);
   window.addEventListener("keydown", blockGameInput, true);
   window.addEventListener("keyup", blockGameInput, true);
+  const handleStorage = (event) => { if (event.key === STORAGE_KEY) tick(); };
+  const handlePageHide = () => flushAndRelease();
   document.addEventListener("visibilitychange", tick);
-  window.addEventListener("storage", (event) => { if (event.key === STORAGE_KEY) tick(); });
-  window.addEventListener("pagehide", () => flushAndRelease());
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener("pagehide", handlePageHide);
   timer = window.setInterval(tick, TICK_MS);
   tick();
 
-  return { tick, stop() { clearInterval(timer); flushAndRelease(); window.removeEventListener("keydown", blockGameInput, true); window.removeEventListener("keyup", blockGameInput, true); overlay.remove(); } };
+  return { tick, stop() { clearInterval(timer); flushAndRelease(); document.removeEventListener("visibilitychange", tick); window.removeEventListener("storage", handleStorage); window.removeEventListener("pagehide", handlePageHide); window.removeEventListener("keydown", blockGameInput, true); window.removeEventListener("keyup", blockGameInput, true); setBackgroundInert(false); overlay.remove(); } };
 }
 
 export { PLAY_LIMIT_MS, REST_DURATION_MS, STORAGE_KEY };
+import { createSafeJsonStore } from "./safe-storage.js";

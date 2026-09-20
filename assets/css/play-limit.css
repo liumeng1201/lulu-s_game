@@ -45,3 +45,17 @@
 .play-limit-continue { background: #7655d6; color: white; box-shadow: 0 7px 0 #5434a7; }
 .play-limit-home { background: #eee7fa; color: #604493; }
 .play-limit-continue[hidden] { display: none; }
+
+.save-conflict-notice {
+  position: fixed;
+  z-index: 9000;
+  right: 16px;
+  bottom: 16px;
+  max-width: min(360px, calc(100% - 32px));
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #493080;
+  box-shadow: 0 8px 28px rgba(30, 18, 50, .28);
+  color: white;
+  font: 700 14px/1.6 "Microsoft YaHei", system-ui, sans-serif;
+}

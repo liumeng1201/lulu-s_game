@@ -1,5 +1,7 @@
 import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, chooseAiMove, createBoard, isBoardFull } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
+import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
+import { validateGomokuSave } from "./save-state.mjs";
 
 const SAVE_KEY = "lulu-gomoku-save-v1";
 const names = { [BLACK]: "黑棋", [WHITE]: "白棋" };
@@ -10,6 +12,7 @@ const context = elements.board.getContext("2d");
 const state = { mode: "pvp", difficulty: "medium", board: createBoard(), currentPlayer: BLACK, running: false, thinking: false, winner: null, winningLine: [], history: [], soundOn: true, cursor: { row: 7, col: 7 }, aiTimer: null };
 let audioContext;
 let resumeAiAfterLimit = false;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -19,22 +22,16 @@ function saveGame() {
     cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"),
     resultOpen: !elements.resultPanel.classList.contains("hidden"),
   };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+  gameStore.save(value);
 }
 
 function loadGame() {
-  try {
-    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
-    const validBoard = Array.isArray(value?.board) && value.board.length === BOARD_SIZE && value.board.every((row) => Array.isArray(row) && row.length === BOARD_SIZE);
-    if (value?.version !== 1 || !validBoard || !["pvp", "ai"].includes(value.mode)) return null;
-    state.mode = value.mode; state.difficulty = ["easy", "medium", "hard"].includes(value.difficulty) ? value.difficulty : "medium";
-    state.board = value.board; state.currentPlayer = value.currentPlayer === WHITE ? WHITE : BLACK;
-    state.running = Boolean(value.running); state.thinking = false; state.winner = value.winner;
-    state.winningLine = Array.isArray(value.winningLine) ? value.winningLine : [];
-    state.history = Array.isArray(value.history) ? value.history : []; state.soundOn = value.soundOn !== false;
-    state.cursor = Number.isInteger(value.cursor?.row) && Number.isInteger(value.cursor?.col) ? value.cursor : { row: 7, col: 7 };
-    return value;
-  } catch { return null; }
+  const value = gameStore.load();
+  if (!value) return null;
+  state.mode = value.mode; state.difficulty = value.difficulty; state.board = value.board; state.currentPlayer = value.currentPlayer;
+  state.running = value.running; state.thinking = false; state.winner = value.winner; state.winningLine = value.winningLine;
+  state.history = value.history; state.soundOn = value.soundOn; state.cursor = value.cursor;
+  return value;
 }
 
 function playTone(frequency, duration, type = "sine") {
