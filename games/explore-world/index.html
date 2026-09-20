@@ -13,7 +13,7 @@
     <main class="app-shell">
       <header class="topbar">
         <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
-        <div class="brand"><span class="brand-icon" aria-hidden="true">🌍</span><span>探索小世界</span></div>
+        <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i></span><span>探索小世界</span></div>
         <button id="soundButton" class="icon-button" type="button" aria-label="关闭声音">🔊</button>
       </header>
 
@@ -23,11 +23,11 @@
           <p id="sceneHint" aria-live="polite">点击地面移动，点击人物聊天</p>
           <span class="save-status" id="saveStatus">已自动保存</span>
         </div>
-        <div id="game" class="game-stage" aria-label="探索小世界游戏区域"></div>
+        <div id="game" class="game-stage" aria-label="探索小世界游戏区域，使用方向键或 WASD 移动，也可以点击地面"></div>
         <div class="controls-tip">
-          <span><b aria-hidden="true">☝️</b> 点击或触摸地面移动</span>
-          <span><b aria-hidden="true">💬</b> 点击人物开始对话</span>
-          <span><b aria-hidden="true">🚪</b> 从门口前往其他区域</span>
+          <span><kbd>WASD</kbd> <kbd>方向键</kbd> 移动</span>
+          <span><kbd>点击</kbd> 前往位置</span>
+          <span><kbd>人物</kbd> 交谈</span>
         </div>
       </section>
       <p class="footer-tip">小世界只有白天，每一个角落都有人在认真生活 ☀️</p>
@@ -35,7 +35,7 @@
 
     <dialog id="dialogue" class="dialogue-card" aria-labelledby="dialogueName">
       <div class="dialogue-person">
-        <span id="dialogueAvatar" aria-hidden="true">🙂</span>
+        <span id="dialogueAvatar" aria-hidden="true"></span>
         <strong id="dialogueName">居民</strong>
       </div>
       <p id="dialogueText"></p>

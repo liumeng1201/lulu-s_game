@@ -1,14 +1,15 @@
 const SAVE_KEY = "lulu-explore-world-save";
 const WIDE_SCREEN_SCALE = 4 / 3;
 const WIDE_SCENE_HEIGHT_SCALE = 7 / 9;
-export const DEFAULT_SAVE = { version: 3, sceneId: "home-living", x: 640, y: 389 };
+export const DEFAULT_SAVE = { version: 4, sceneId: "home-living", x: 640, y: 500 };
 
 export function validateExploreSave(value) {
   if (!value || typeof value.sceneId !== "string" || !Number.isFinite(value.x) || !Number.isFinite(value.y)) return null;
   if (value.x < -200 || value.x > 2000 || value.y < -200 || value.y > 1200) return null;
-  if (value.version === 3) return { ...value, version: 3, x: Math.round(value.x), y: Math.round(value.y) };
-  if (value.version === 2) return { ...value, version: 3, x: Math.round(value.x), y: Math.round(value.y * WIDE_SCENE_HEIGHT_SCALE) };
-  if (value.version === 1) return { ...value, version: 3, x: Math.round(value.x * WIDE_SCREEN_SCALE), y: Math.round(value.y * WIDE_SCENE_HEIGHT_SCALE) };
+  if (value.version === 4) return { ...value, version: 4, x: Math.round(value.x), y: Math.round(value.y) };
+  if (value.version === 3) return { ...value, version: 4, x: Math.round(value.x), y: Math.max(260, Math.min(640, Math.round(value.y + 90))) };
+  if (value.version === 2) return { ...value, version: 4, x: Math.round(value.x), y: Math.max(260, Math.min(640, Math.round(value.y * WIDE_SCENE_HEIGHT_SCALE + 90))) };
+  if (value.version === 1) return { ...value, version: 4, x: Math.round(value.x * WIDE_SCREEN_SCALE), y: Math.max(260, Math.min(640, Math.round(value.y * WIDE_SCENE_HEIGHT_SCALE + 90))) };
   return null;
 }
 
@@ -21,7 +22,7 @@ export function loadSave(storage = localStorage) {
 }
 
 export function savePosition(sceneId, x, y, storage = localStorage) {
-  const value = { version: 3, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() };
+  const value = { version: 4, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() };
   try { storage.setItem(SAVE_KEY, JSON.stringify(value)); }
   catch { /* The active page can continue even when persistence is unavailable. */ }
   return value;
