@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="和朋友或电脑来一局轻松有趣的井字棋。" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>井字棋｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-piece" aria-hidden="true">✕</span><span>井字棋</span></div>
+        <button id="soundButton" class="icon-button" type="button" aria-label="关闭声音" title="声音开关">🔊</button>
+      </header>
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="scoreboard">
+          <div class="player-card active" id="xCard"><span class="mark x">×</span><span><small>先手</small><strong id="xName">玩家一</strong></span></div>
+          <div class="turn-status"><span id="modeBadge">人人对战</span><strong id="turnText" aria-live="polite">准备开始</strong></div>
+          <div class="player-card" id="oCard"><span><small>后手</small><strong id="oName">玩家二</strong></span><span class="mark o">○</span></div>
+        </div>
+        <div class="board-stage">
+          <div id="board" class="board" role="grid" tabindex="0" aria-label="井字棋棋盘。使用方向键移动，按回车或空格落子。"></div>
+          <div id="modePanel" class="overlay-panel">
+            <div class="mascot" aria-hidden="true">🎲</div><p class="eyebrow">三格小棋局</p><h1 id="gameTitle">选择对战方式</h1>
+            <div class="choice-row" aria-label="游戏模式"><button class="choice-button selected" data-mode="pvp" type="button" aria-pressed="true">👥 人人对战</button><button class="choice-button" data-mode="ai" type="button" aria-pressed="false">🤖 人机对战</button></div>
+            <div id="difficultyGroup" class="difficulty hidden" aria-label="电脑难度"><span>选择难度</span><div class="segmented"><button data-difficulty="easy" type="button" aria-pressed="false">简单</button><button class="selected" data-difficulty="medium" type="button" aria-pressed="true">中等</button><button data-difficulty="hard" type="button" aria-pressed="false">困难</button></div></div>
+            <button id="startButton" class="primary-button" type="button"><span aria-hidden="true">▶</span> 开始游戏</button><div class="mini-tip">横、竖、斜线连成三个就获胜</div>
+          </div>
+          <div id="resultPanel" class="overlay-panel hidden" aria-live="polite"><div id="resultEmoji" class="result-emoji" aria-hidden="true">🎉</div><p class="eyebrow">本局结果</p><h2 id="resultTitle">X 获胜！</h2><p id="resultMessage">漂亮的连线！</p><div class="result-actions"><button id="restartButton" class="primary-button" type="button">再玩一局</button><button id="resultModeButton" class="secondary-button" type="button">更换模式</button></div></div>
+        </div>
+        <div class="controls" aria-label="对局操作"><button id="undoButton" class="control-button" type="button" disabled>↶ <span>悔棋</span></button><p class="control-tip">点击格子落子<br /><span>方向键 + 回车也可落子</span></p><button id="restartControl" class="control-button" type="button">↻ <span>重开</span></button><button id="modeButton" class="control-button" type="button">⚙ <span>模式</span></button></div>
+      </section>
+      <p class="footer-tip">三格连线，快乐翻倍 ✨</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
