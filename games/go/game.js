@@ -1,5 +1,7 @@
 import { BLACK, WHITE, boardKey, createBoard, getGroup, playMove, scoreBoard } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
+import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
+import { validateGoSave } from "./save-state.mjs";
 
 const SAVE_KEY = "lulu-go-save-v1";
 const names = { [BLACK]: "黑棋", [WHITE]: "白棋" };
@@ -19,6 +21,7 @@ const draft = { mode: "pvp", difficulty: "medium", size: 9 };
 let aiWorker;
 let audioContext;
 let resumeAiAfterLimit = false;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGoSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -29,26 +32,18 @@ function saveGame() {
     scoringConfirmations: [...state.scoringConfirmations], draft: { ...draft },
     resultOpen: !elements.resultPanel.classList.contains("hidden"), notice: elements.notice.textContent,
   };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(value));
+  gameStore.save(value);
 }
 
 function loadGame() {
-  try {
-    const value = JSON.parse(localStorage.getItem(SAVE_KEY));
-    const validSize = [9, 13, 19].includes(value?.size);
-    const validBoard = validSize && Array.isArray(value.board) && value.board.length === value.size && value.board.every((row) => Array.isArray(row) && row.length === value.size);
-    if (value?.version !== 1 || !validBoard || !["pvp", "ai"].includes(value.mode)) return null;
-    state.mode = value.mode; state.difficulty = ["easy", "medium", "hard"].includes(value.difficulty) ? value.difficulty : "medium";
-    state.size = value.size; state.board = value.board; state.currentPlayer = value.currentPlayer === WHITE ? WHITE : BLACK;
-    state.running = Boolean(value.running); state.thinking = false; state.history = Array.isArray(value.history) ? value.history : [];
-    state.captures = value.captures ?? { [BLACK]: 0, [WHITE]: 0 }; state.consecutivePasses = Number(value.consecutivePasses) || 0;
-    state.soundOn = value.soundOn !== false; state.cursor = value.cursor ?? { row: Math.floor(value.size / 2), col: Math.floor(value.size / 2) };
-    state.lastMove = value.lastMove ?? null; state.settingsOpen = Boolean(value.settingsOpen); state.scoring = Boolean(value.scoring);
-    state.deadStones = new Set(Array.isArray(value.deadStones) ? value.deadStones : []);
-    state.scoringConfirmations = new Set(Array.isArray(value.scoringConfirmations) ? value.scoringConfirmations : []);
-    Object.assign(draft, value.draft ?? { mode: state.mode, difficulty: state.difficulty, size: state.size });
-    return value;
-  } catch { return null; }
+  const value = gameStore.load();
+  if (!value) return null;
+  state.mode = value.mode; state.difficulty = value.difficulty; state.size = value.size; state.board = value.board; state.currentPlayer = value.currentPlayer;
+  state.running = value.running; state.thinking = false; state.history = value.history; state.captures = value.captures;
+  state.consecutivePasses = value.consecutivePasses; state.soundOn = value.soundOn; state.cursor = value.cursor; state.lastMove = value.lastMove;
+  state.settingsOpen = value.settingsOpen; state.scoring = value.scoring; state.deadStones = new Set(value.deadStones);
+  state.scoringConfirmations = new Set(value.scoringConfirmations); Object.assign(draft, value.draft);
+  return value;
 }
 
 function restartAiWorker() {
