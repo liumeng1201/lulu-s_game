@@ -3,6 +3,7 @@ import worldMapUrl from "../assets/world-map.png";
 import characterAtlasUrl from "../assets/character-atlas.png";
 import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
 import { loadSave, savePosition } from "./save-system.js";
+import { startPlayLimit } from "../../../assets/js/play-limit.js";
 
 const BASE_WIDTH = 960;
 const BASE_HEIGHT = 720;
@@ -245,7 +246,21 @@ const game = new Phaser.Game({
   scene: [BootScene, WorldMapScene, AreaScene],
 });
 
+function saveCurrentPosition() {
+  if (activeScene?.player) savePosition(activeScene.areaId, activeScene.player.x, activeScene.player.y);
+}
+
+function lockGame() {
+  saveCurrentPosition();
+  game.loop.sleep();
+}
+
+function resumeGameAfterLimit() {
+  game.loop.wake();
+}
+
 ui.sound.addEventListener("click",()=>{ soundOn=!soundOn; ui.sound.textContent=soundOn?"🔊":"🔇"; ui.sound.setAttribute("aria-label",soundOn?"关闭声音":"打开声音"); });
-window.addEventListener("pagehide",()=>{ if (activeScene?.player) savePosition(activeScene.areaId,activeScene.player.x,activeScene.player.y); });
-window.addEventListener("beforeunload",()=>{ if (activeScene?.player) savePosition(activeScene.areaId,activeScene.player.x,activeScene.player.y); });
+window.addEventListener("pagehide", saveCurrentPosition);
+window.addEventListener("beforeunload", saveCurrentPosition);
+startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
 export { game };

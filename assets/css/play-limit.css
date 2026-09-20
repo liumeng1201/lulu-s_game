@@ -1,0 +1,47 @@
+.play-limit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(34, 24, 57, .76);
+  backdrop-filter: blur(7px);
+}
+
+.play-limit-overlay[hidden] { display: none; }
+
+.play-limit-card {
+  box-sizing: border-box;
+  width: min(440px, 100%);
+  padding: 30px 26px 26px;
+  border: 4px solid rgba(255,255,255,.92);
+  border-radius: 30px;
+  background: linear-gradient(155deg, #fffdf7, #f5efff);
+  box-shadow: 0 24px 70px rgba(24, 13, 45, .38);
+  color: #493080;
+  text-align: center;
+  font-family: "Microsoft YaHei", system-ui, sans-serif;
+}
+
+.play-limit-mascot { font-size: 58px; line-height: 1; }
+.play-limit-eyebrow { margin: 12px 0 5px; color: #8c6bc7; font-weight: 800; letter-spacing: .12em; }
+.play-limit-card h2 { margin: 0; font-size: clamp(25px, 7vw, 34px); }
+.play-limit-message, .play-limit-hint { margin: 14px auto; line-height: 1.7; color: #625477; }
+.play-limit-countdown { display: block; margin: 16px 0 8px; color: #7655d6; font-size: clamp(38px, 12vw, 56px); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.play-limit-continue, .play-limit-home {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: 16px;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+.play-limit-continue { background: #7655d6; color: white; box-shadow: 0 7px 0 #5434a7; }
+.play-limit-home { background: #eee7fa; color: #604493; }
+.play-limit-continue[hidden] { display: none; }
