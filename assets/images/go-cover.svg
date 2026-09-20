@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-labelledby="title desc">
+  <title id="title">围棋游戏封面</title><desc id="desc">竹林前的小狐狸在木质围棋棋盘上下棋</desc>
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#416e58"/><stop offset="1" stop-color="#a9c982"/></linearGradient><linearGradient id="wood"><stop stop-color="#f1d292"/><stop offset="1" stop-color="#ca9347"/></linearGradient></defs>
+  <rect width="800" height="500" fill="url(#sky)"/><circle cx="675" cy="82" r="52" fill="#fff2b1" opacity=".9"/>
+  <g stroke="#d9eaaa" stroke-width="18" opacity=".35"><path d="M70 0v310M145 0v275M715 0v285M755 0v330"/><path d="M70 80l65-35M145 130l-75-25M715 90l45-28" stroke-width="9"/></g>
+  <ellipse cx="400" cy="465" rx="340" ry="40" fill="#244b38" opacity=".35"/>
+  <g transform="translate(192 104)"><path d="M0 95L35 15l59 58M195 95l-36-80-57 58" fill="#db713f" stroke="#fff3cf" stroke-width="7"/><circle cx="98" cy="105" r="85" fill="#e58048" stroke="#fff3cf" stroke-width="8"/><path d="M38 90q60 98 120 0q-10 93-60 95Q48 182 38 90" fill="#fff0cf"/><circle cx="68" cy="105" r="8"/><circle cx="128" cy="105" r="8"/><path d="M88 125q10 12 20 0" fill="none" stroke="#5b3427" stroke-width="6" stroke-linecap="round"/></g>
+  <g transform="translate(335 142)"><rect x="0" y="0" width="390" height="285" rx="18" fill="url(#wood)" stroke="#fff8df" stroke-width="10"/>
+    <g stroke="#59452b" stroke-width="3" opacity=".85"><path d="M32 30v225M72 30v225M112 30v225M152 30v225M192 30v225M232 30v225M272 30v225M312 30v225M352 30v225"/><path d="M32 30h320M32 58h320M32 86h320M32 114h320M32 142h320M32 170h320M32 198h320M32 226h320M32 255h320"/></g>
+    <g fill="#202822"><circle cx="112" cy="86" r="16"/><circle cx="152" cy="114" r="16"/><circle cx="192" cy="142" r="16"/><circle cx="232" cy="142" r="16"/><circle cx="272" cy="198" r="16"/></g><g fill="#faf9ed" stroke="#ccc" stroke-width="2"><circle cx="152" cy="86" r="16"/><circle cx="192" cy="114" r="16"/><circle cx="232" cy="114" r="16"/><circle cx="272" cy="170" r="16"/><circle cx="312" cy="198" r="16"/></g>
+  </g>
+  <text x="67" y="430" fill="#fff9d8" font-family="KaiTi,serif" font-size="74" font-weight="bold">围棋</text><text x="72" y="468" fill="#fff" font-family="sans-serif" font-size="20">落子无悔 · 方寸之间见天地</text>
+</svg>

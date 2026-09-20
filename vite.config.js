@@ -9,6 +9,7 @@ export default defineConfig({
         resolve(import.meta.dirname, "index.html"),
         resolve(import.meta.dirname, "games/catch-stars/index.html"),
         resolve(import.meta.dirname, "games/gomoku/index.html"),
+        resolve(import.meta.dirname, "games/go/index.html"),
         resolve(import.meta.dirname, "games/explore-world/index.html"),
       ],
     },
