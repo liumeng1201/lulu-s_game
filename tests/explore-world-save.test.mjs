@@ -30,7 +30,7 @@ test("a legacy 4:3 save is migrated to the wide scene", () => {
 });
 
 test("a version 2 save is migrated to the shorter wide scene", () => {
-  const previous = JSON.stringify({ version: 2, sceneId: "school-hall", x: 640, y: 540 });
+  const previous = JSON.stringify({ version: 2, sceneId: "school-corridor", x: 640, y: 540 });
   const loaded = loadSave(memoryStorage(previous));
   assert.equal(loaded.version, 4);
   assert.equal(loaded.x, 640);
@@ -39,4 +39,9 @@ test("a version 2 save is migrated to the shorter wide scene", () => {
 
 test("invalid save data falls back to home", () => {
   assert.deepEqual(loadSave(memoryStorage("not json")), DEFAULT_SAVE);
+});
+
+test("a save for a removed or unknown scene falls back to home", () => {
+  const removedScene = JSON.stringify({ version: 4, sceneId: "school-hall", x: 640, y: 500 });
+  assert.deepEqual(loadSave(memoryStorage(removedScene)), DEFAULT_SAVE);
 });
