@@ -10,6 +10,7 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 const TILE = 32;
 const WALK_SPEED = 230;
+const CHARACTER_SIZE_MULTIPLIER = 4;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
 const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 const roleTints = { family: 0xffd6b0, teacher: 0xffd37a, student: 0xaed8ff, doctor: 0xb8e7dc, nurse: 0xffc9d5, patient: 0xd9c8ff, cashier: 0xffd08d, staff: 0xbbe09b, customer: 0xe7c3a2 };
@@ -60,11 +61,12 @@ function cropCharacter(sprite, direction = 0, frame = 0) {
 }
 
 function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
-  const shadow = scene.add.rectangle(0, 40 * scale, 48 * scale, 12 * scale, 0x34283c, .2);
-  const sprite = scene.add.image(0, 0, "characters").setDisplaySize(92 * scale, 118 * scale);
+  const personScale = scale * CHARACTER_SIZE_MULTIPLIER;
+  const shadow = scene.add.rectangle(0, 40 * personScale, 48 * personScale, 12 * personScale, 0x34283c, .2);
+  const sprite = scene.add.image(0, 0, "characters").setDisplaySize(92 * personScale, 118 * personScale);
   cropCharacter(sprite, 0, frame);
   if (tint) sprite.setTint(tint);
-  const person = scene.add.container(x, y, [shadow, sprite]).setSize(92 * scale, 118 * scale);
+  const person = scene.add.container(x, y, [shadow, sprite]).setSize(92 * personScale, 118 * personScale);
   return person.setData("sprite", sprite).setData("direction", 0).setData("walkFrame", 0);
 }
 
