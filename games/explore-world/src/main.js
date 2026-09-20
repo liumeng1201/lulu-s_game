@@ -19,7 +19,11 @@ let audioContext;
 let dialogueTimer;
 
 function loadExploreSave() { return gameStore.load() ?? { ...DEFAULT_SAVE }; }
-function saveExplorePosition(sceneId, x, y) { return gameStore.save({ version: 4, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() }); }
+function saveExplorePosition(sceneId, x, y) {
+  const saved = gameStore.save({ version: 4, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() });
+  if (!saved) ui.saveStatus.textContent = "此标签页未保存";
+  return saved;
+}
 
 function tone(frequency = 420, duration = .1) {
   if (!soundOn) return;
@@ -112,16 +116,39 @@ class WorldMapScene extends Phaser.Scene {
     this.add.image(WIDTH / 2, HEIGHT / 2, "world-map").setDisplaySize(WIDTH, HEIGHT);
     addPixelRect(this, WIDTH / 2, 47, 430, 62, 0x493a58, 0xf3d47d);
     this.add.text(WIDTH / 2, 47, "青 芽 镇 · 今日去哪里？", { fontFamily: '"Microsoft YaHei", monospace', fontSize: "24px", fontStyle: "bold", color: "#fff5ce" }).setOrigin(.5);
-    Object.values(LOCATIONS).forEach((location) => {
+    this.destinations = Object.values(LOCATIONS).map((location) => {
       const { x, y } = location.mapPosition;
       const marker = this.add.container(x, y).setSize(210, 120).setInteractive({ useHandCursor: true });
       const bg = addPixelRect(this, 0, 0, 174, 54, 0xfff3cf, location.color); const label = this.add.text(0, 0, location.name, { fontFamily: '"Microsoft YaHei", monospace', fontSize: "22px", fontStyle: "bold", color: "#44354e" }).setOrigin(.5);
       marker.add([bg, label]);
       marker.on("pointerover", () => this.tweens.add({ targets: marker, y: y - 8, duration: 100 }));
       marker.on("pointerout", () => this.tweens.add({ targets: marker, y, duration: 100 }));
-      marker.on("pointerup", () => { tone(520); this.scene.start("area", { areaId: location.hub }); });
+      const activate = () => { tone(520); this.scene.start("area", { areaId: location.hub }); };
+      marker.on("pointerup", activate);
+      return { marker, bg, color: location.color, activate };
     });
+    this.selectedDestination = 0;
+    this.mapKeys = this.input.keyboard.addKeys("LEFT,RIGHT,UP,DOWN,ENTER,SPACE");
+    this.updateDestinationSelection();
     saveExplorePosition(WORLD_SCENE, WIDTH / 2, HEIGHT / 2);
+  }
+
+  updateDestinationSelection() {
+    this.destinations.forEach(({ marker, bg, color }, index) => {
+      marker.setScale(index === this.selectedDestination ? 1.08 : 1);
+      bg.setStrokeStyle(index === this.selectedDestination ? 7 : 4, index === this.selectedDestination ? 0xfff3a1 : color);
+    });
+  }
+
+  update() {
+    const { LEFT, RIGHT, UP, DOWN, ENTER, SPACE } = this.mapKeys;
+    let next = this.selectedDestination;
+    if (Phaser.Input.Keyboard.JustDown(LEFT) && next % 2 === 1) next -= 1;
+    if (Phaser.Input.Keyboard.JustDown(RIGHT) && next % 2 === 0) next += 1;
+    if (Phaser.Input.Keyboard.JustDown(UP) && next >= 2) next -= 2;
+    if (Phaser.Input.Keyboard.JustDown(DOWN) && next < 2) next += 2;
+    if (next !== this.selectedDestination) { this.selectedDestination = next; this.updateDestinationSelection(); tone(360, .04); }
+    if (Phaser.Input.Keyboard.JustDown(ENTER) || Phaser.Input.Keyboard.JustDown(SPACE)) this.destinations[this.selectedDestination].activate();
   }
 }
 
@@ -130,13 +157,14 @@ class AreaScene extends Phaser.Scene {
   init(data) { this.areaId = data.areaId || "home-living"; this.saved = data.saved; this.lastSavedAt = 0; this.wasKeyboardMoving = false; }
   create() {
     activeScene = this; this.area = AREAS[this.areaId]; const location = LOCATIONS[this.area.location];
-    setUi(`${location.name} · ${this.area.name}`, "方向键 / WASD / 点击移动，点击人物交谈");
+    setUi(`${location.name} · ${this.area.name}`, "方向键 / WASD / 点击移动，按 E 与附近对象互动");
+    this.interactables = [];
     this.drawRoom(); this.createDoors(); this.createNpcs();
     const savedHere = this.saved?.sceneId === this.areaId;
     const x = savedHere ? Phaser.Math.Clamp(this.saved.x, 105, WIDTH - 105) : WIDTH / 2;
     const y = savedHere ? Phaser.Math.Clamp(this.saved.y, 275, HEIGHT - 78) : 520;
     this.player = makePerson(this, x, y, { scale: 1.02 }).setDepth(y + 20).setData("isPlayer", true);
-    this.keys = this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT");
+    this.keys = this.input.keyboard.addKeys("W,A,S,D,E,UP,DOWN,LEFT,RIGHT");
     this.input.on("pointerup", (pointer, objects) => {
       if (ui.dialogue.open || objects.some((object) => object.getData?.("interactiveRole"))) return;
       this.movePlayer(pointer.worldX, pointer.worldY);
@@ -171,7 +199,9 @@ class AreaScene extends Phaser.Scene {
       const frame = addPixelRect(this, 0, 0, 106, 166, 0x6f4938, 0x3d3032); const panel = addPixelRect(this, 0, 7, 72, 128, 0xc9834c, 0x4d3534);
       const sign = this.add.text(0, 112, door.label, { fontFamily: '"Microsoft YaHei", monospace', fontSize: "15px", fontStyle: "bold", color: "#fff2c1", backgroundColor: "#493a58", padding: { x: 7, y: 4 } }).setOrigin(.5);
       container.add([frame, panel, sign]);
-      container.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); tone(470); saveExplorePosition(this.areaId, this.player.x, this.player.y); this.scene.start(door.target === WORLD_SCENE ? WORLD_SCENE : "area", door.target === WORLD_SCENE ? undefined : { areaId: door.target }); });
+      const activate = () => { tone(470); saveExplorePosition(this.areaId, this.player.x, this.player.y); this.scene.start(door.target === WORLD_SCENE ? WORLD_SCENE : "area", door.target === WORLD_SCENE ? undefined : { areaId: door.target }); };
+      container.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
+      this.interactables.push({ object: container, activate });
     });
   }
 
@@ -184,7 +214,9 @@ class AreaScene extends Phaser.Scene {
       const dialogueNpc = { ...npc, frame, hue };
       const prompt = addPixelRect(this, 0, -72, 28, 28, 0xfff0a3, 0x493a58); const mark = this.add.text(0, -73, "!", { fontFamily: "monospace", fontSize: "20px", fontStyle: "bold", color: "#493a58" }).setOrigin(.5);
       person.add([prompt, mark]).setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 620) });
-      person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); showDialogue(dialogueNpc); });
+      const activate = () => showDialogue(dialogueNpc);
+      person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
+      this.interactables.push({ object: person, activate });
       return person;
     });
   }
@@ -210,11 +242,21 @@ class AreaScene extends Phaser.Scene {
   }
 
   persistPosition() {
-    saveExplorePosition(this.areaId, this.player.x, this.player.y); ui.saveStatus.textContent = "已自动保存"; this.lastSavedAt = this.time.now;
+    const saved = saveExplorePosition(this.areaId, this.player.x, this.player.y);
+    ui.saveStatus.textContent = saved ? "已自动保存" : "此标签页未保存";
+    this.lastSavedAt = this.time.now;
   }
 
   update(time, delta) {
     if (!this.player || ui.dialogue.open) return;
+    if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
+      const nearby = this.interactables
+        .map((entry) => ({ ...entry, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, entry.object.x, entry.object.y) }))
+        .filter((entry) => entry.distance <= 165)
+        .sort((a, b) => a.distance - b.distance)[0];
+      nearby?.activate();
+      return;
+    }
     const left = this.keys.A.isDown || this.keys.LEFT.isDown; const right = this.keys.D.isDown || this.keys.RIGHT.isDown;
     const up = this.keys.W.isDown || this.keys.UP.isDown; const down = this.keys.S.isDown || this.keys.DOWN.isDown;
     let dx = Number(right) - Number(left); let dy = Number(down) - Number(up);

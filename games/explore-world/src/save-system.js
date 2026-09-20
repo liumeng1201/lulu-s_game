@@ -1,10 +1,13 @@
+import { AREAS, WORLD_SCENE } from "./world-data.js";
+
 const SAVE_KEY = "lulu-explore-world-save";
 const WIDE_SCREEN_SCALE = 4 / 3;
 const WIDE_SCENE_HEIGHT_SCALE = 7 / 9;
+const VALID_SCENES = new Set([WORLD_SCENE, ...Object.keys(AREAS)]);
 export const DEFAULT_SAVE = { version: 4, sceneId: "home-living", x: 640, y: 500 };
 
 export function validateExploreSave(value) {
-  if (!value || typeof value.sceneId !== "string" || !Number.isFinite(value.x) || !Number.isFinite(value.y)) return null;
+  if (!value || !VALID_SCENES.has(value.sceneId) || !Number.isFinite(value.x) || !Number.isFinite(value.y)) return null;
   if (value.x < -200 || value.x > 2000 || value.y < -200 || value.y > 1200) return null;
   if (value.version === 4) return { ...value, version: 4, x: Math.round(value.x), y: Math.round(value.y) };
   if (value.version === 3) return { ...value, version: 4, x: Math.round(value.x), y: Math.max(260, Math.min(640, Math.round(value.y + 90))) };
