@@ -3,6 +3,7 @@ set -eu
 
 asset_dir=${1:-games/explore-world/assets/characters}
 source_dir=${2:-$asset_dir}
+only=${ONLY:-}
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 
@@ -28,8 +29,17 @@ normalize_sheet() {
   source=$1
   output=$2
   source_rows=$3
+  crop_y=$4
+  crop_height=$5
   width=$(identify -format '%w' "$source")
   height=$(identify -format '%h' "$source")
+  if [ "$crop_y" -gt 0 ] || [ "$crop_height" -gt 0 ]; then
+    if [ "$crop_height" -eq 0 ]; then crop_height=$((height - crop_y)); fi
+    cropped_source="$tmp_dir/$(basename "$source").cropped.png"
+    convert "$source" -crop "${width}x${crop_height}+0+${crop_y}" +repage "$cropped_source"
+    source=$cropped_source
+    height=$(identify -format '%h' "$source")
+  fi
   y_density="$tmp_dir/$(basename "$source").y-density"
   x_density="$tmp_dir/$(basename "$source").x-density"
   convert "$source" -alpha extract -scale 1x"$height"\! txt:- |
@@ -45,14 +55,16 @@ normalize_sheet() {
   done
   cuts="$cuts $height"
 
-  if [ "$width" -eq 615 ]; then
-    # The four source poses in the 615px sheets are wider than their nominal
-    # 153.75px cells. These boundaries sit in the transparent gaps between
-    # silhouettes; equal-width cuts would retain neighboring limbs.
-    x_cuts="0 185 313 448 615"
-  else
-    x_cuts="0 $((width / 4)) $((width / 2)) $((width * 3 / 4)) $width"
-  fi
+  # Locate each column boundary in an alpha valley. The generated poses are
+  # wider than nominal grid cells, and a single hard-coded set of cuts lets
+  # neighboring hands, hair, or clothing leak into some characters.
+  x_cuts="0"
+  boundary=1
+  while [ "$boundary" -lt 4 ]; do
+    x_cuts="$x_cuts $(find_cut "$x_density" "$width" 4 "$boundary")"
+    boundary=$((boundary + 1))
+  done
+  x_cuts="$x_cuts $width"
 
   old_ifs=$IFS
   IFS=' '
@@ -111,10 +123,22 @@ normalize_sheet() {
       fi
       cell_width=$((right - left))
       frame="$tmp_dir/frame-${row_index}-${column}.png"
+      alpha="$tmp_dir/frame-${row_index}-${column}.alpha.png"
+      mask="$tmp_dir/frame-${row_index}-${column}.mask.png"
+      clean_alpha="$tmp_dir/frame-${row_index}-${column}.clean-alpha.png"
+      clean_frame="$tmp_dir/frame-${row_index}-${column}.clean.png"
       flip=""
       if [ "$source_rows" -eq 3 ] && [ "$row_index" -eq 2 ]; then flip='-flop'; fi
       convert "$source" -crop "${cell_width}x${row_height}+${left}+${row_start}" +repage $flip \
-        -trim +repage -resize '224x224' -gravity center -background none -extent 256x256 "$frame"
+        -trim +repage -resize '224x224' -gravity center -background none -extent 256x256 \
+        -shave 12x12 -bordercolor none -border 12 "$frame"
+      # Keep the original antialiased alpha, but use a binary morphology mask
+      # to remove isolated pixels left by neighboring poses in the composite.
+      convert "$frame" -alpha extract "$alpha"
+      convert "$alpha" -threshold 1% -morphology Open Disk:1 "$mask"
+      convert "$alpha" "$mask" -compose Multiply -composite "$clean_alpha"
+      convert "$frame" -alpha off "$clean_alpha" -compose CopyOpacity -composite "$clean_frame"
+      mv "$clean_frame" "$frame"
       row_cells="$row_cells $frame"
       column=$((column + 1))
     done
@@ -127,19 +151,29 @@ normalize_sheet() {
   convert $rows_out -append "$output"
 }
 
+# Entries use name:source_rows:crop_y:crop_height. The school source sheets
+# contain three poses except for the four-row duty-teacher sheet; the explicit
+# crop offsets remove overlap from the neighboring panels in the old composite.
 for entry in \
-  'mother:4' 'father:4' 'grandfather:3' 'grandmother:3' \
-  'brother:4' 'duty-teacher:4' 'lin-teacher:3' 'student-1:3' \
-  'student-2:4' 'student-3:4' 'student-4:3' 'student-5:3' \
-  'student-6:4' 'student-7:4' 'student-8:3' 'student-9:3' \
-  'student-10:4' 'guide-nurse:4' 'chen-nurse:3' 'wang-doctor:3' \
-  'patient-1:4' 'patient-2:4' 'patient-3:3' 'patient-4:3' \
-  'player:4' 'cashier:4' 'stock-clerk:4' 'floor-clerk:4' \
-  'customer-1:4' 'customer-2:4' 'customer-3:4' 'customer-4:4'; do
-  name=${entry%:*}
-  rows=${entry#*:}
+  'mother:4:0:0' 'father:4:0:0' 'grandfather:3:0:0' 'grandmother:3:0:0' \
+  'brother:4:0:0' 'duty-teacher:4:0:0' 'lin-teacher:3:60:0' 'student-1:3:60:0' \
+  'student-2:3:0:585' 'student-3:3:0:585' 'student-4:3:0:0' 'student-5:3:0:0' \
+  'student-6:3:0:0' 'student-7:3:0:0' 'student-8:3:0:0' 'student-9:3:0:0' \
+  'student-10:3:0:0' 'guide-nurse:4:0:0' 'chen-nurse:3:0:0' 'wang-doctor:3:0:0' \
+  'patient-1:4:0:0' 'patient-2:4:0:0' 'patient-3:3:0:0' 'patient-4:3:0:0' \
+  'player:4:0:0' 'cashier:4:0:0' 'stock-clerk:4:0:0' 'floor-clerk:4:0:0' \
+  'customer-1:4:0:0' 'customer-2:4:0:0' 'customer-3:4:0:0' 'customer-4:4:0:0'; do
+  name=${entry%%:*}
+  if [ -n "$only" ] && ! printf '%s\n' ",$only," | grep -q ",$name,"; then
+    continue
+  fi
+  metadata=${entry#*:}
+  rows=${metadata%%:*}
+  metadata=${metadata#*:}
+  crop_y=${metadata%%:*}
+  crop_height=${metadata#*:}
   source="$source_dir/$name.png"
   output="$tmp_dir/$name-normalized.png"
-  normalize_sheet "$source" "$output" "$rows"
+  normalize_sheet "$source" "$output" "$rows" "$crop_y" "$crop_height"
   mv "$output" "$asset_dir/$name.png"
 done
