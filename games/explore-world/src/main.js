@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import worldMapUrl from "../assets/village-map-v2.png";
-import characterAtlasUrl from "../assets/player-sprites-v2.png";
+import { CHARACTERS, CHARACTER_SHEETS, characterFlipsHorizontally, characterFrame, characterPortrait } from "./character-data.js";
 import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
 import { SAVE_KEY, DEFAULT_SAVE, validateExploreSave } from "./save-system.js";
 import { startPlayLimit } from "../../../assets/js/play-limit.js";
@@ -12,9 +12,6 @@ const TILE = 32;
 const WALK_SPEED = 230;
 const MAX_MOVEMENT_DELTA_MS = 40;
 const WALK_FRAME_DURATION_MS = 180;
-const CHARACTER_COLUMNS = 4;
-const CHARACTER_FRAME_WIDTH = 319;
-const CHARACTER_FRAME_HEIGHT = 307;
 const CHARACTER_SIZE_MULTIPLIER = 4 / 3;
 const PLAYER_SCALE = 1.02;
 const NPC_SCALE = .88;
@@ -25,7 +22,6 @@ const BOTTOM_FOOT_MARGIN = 24;
 const INTERACTION_DISTANCE = 120;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
 const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
-const roleTints = { family: 0xffd6b0, teacher: 0xffd37a, student: 0xaed8ff, doctor: 0xb8e7dc, nurse: 0xffc9d5, patient: 0xd9c8ff, cashier: 0xffd08d, staff: 0xbbe09b, customer: 0xe7c3a2 };
 let soundOn = true;
 let activeScene;
 let audioContext;
@@ -52,9 +48,11 @@ function setUi(title, hint) { ui.sceneTitle.textContent = title; ui.sceneHint.te
 function showDialogue(npc) {
   clearInterval(dialogueTimer);
   ui.dialogueName.textContent = npc.name;
-  ui.dialogueAvatar.style.backgroundImage = `url(${characterAtlasUrl})`;
-  ui.dialogueAvatar.style.backgroundPosition = `${(npc.frame % 4) * 33.333}% ${Math.floor(npc.frame / 4) * 33.333}%`;
-  ui.dialogueAvatar.style.filter = `sepia(.15) hue-rotate(${npc.hue}deg)`;
+  const portrait = characterPortrait(npc.characterId);
+  ui.dialogueAvatar.style.backgroundImage = `url(${portrait.url})`;
+  ui.dialogueAvatar.style.backgroundSize = portrait.backgroundSize;
+  ui.dialogueAvatar.style.backgroundPosition = portrait.backgroundPosition;
+  ui.dialogueAvatar.style.filter = "none";
   const line = Phaser.Utils.Array.GetRandom(npc.lines);
   ui.dialogueText.textContent = "";
   ui.dialogue.showModal();
@@ -77,13 +75,12 @@ function movementBounds(scale = 1) {
   return { minX: horizontalMargin, maxX: WIDTH - horizontalMargin, minY: FLOOR_START_Y + displayHeight, maxY: HEIGHT - BOTTOM_FOOT_MARGIN };
 }
 
-function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
+function makePerson(scene, x, y, { scale = 1, characterId = "player" } = {}) {
   const { displayWidth, displayHeight } = personMetrics(scale);
-  const sprite = scene.add.sprite(0, 0, "characters", frame).setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
-  if (tint) sprite.setTint(tint);
+  const sprite = scene.add.sprite(0, 0, CHARACTERS[characterId].textureKey, characterFrame(characterId)).setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
   const person = scene.add.container(x, y, [sprite]).setSize(displayWidth, displayHeight);
   return person.setData("sprite", sprite).setData("displayWidth", displayWidth).setData("displayHeight", displayHeight)
-    .setData("direction", 0).setData("walkFrame", frame);
+    .setData("characterId", characterId).setData("direction", 0).setData("walkFrame", 0);
 }
 
 function facePerson(person, dx, dy, moving, time = 0) {
@@ -93,7 +90,26 @@ function facePerson(person, dx, dy, moving, time = 0) {
   const frame = moving ? 1 + Math.floor(time / WALK_FRAME_DURATION_MS) % 3 : 0;
   if (direction === person.getData("direction") && frame === person.getData("walkFrame")) return;
   person.setData("direction", direction).setData("walkFrame", frame);
-  person.getData("sprite").setFrame(direction * CHARACTER_COLUMNS + frame);
+  const characterId = person.getData("characterId");
+  person.getData("sprite").setFrame(characterFrame(characterId, direction, frame)).setFlipX(characterFlipsHorizontally(characterId, direction));
+}
+
+function registerCharacterFrames(texture, characterId, character) {
+  const source = texture.getSourceImage();
+  const panel = character.panel ?? 0;
+  const panelX = panel % character.panelColumns;
+  const panelY = Math.floor(panel / character.panelColumns);
+  const startX = panelX * source.width / character.panelColumns;
+  const startY = panelY * source.height / character.panelRows;
+  const panelWidth = source.width / character.panelColumns;
+  const panelHeight = source.height / character.panelRows;
+  for (let row = 0; row < character.rows; row += 1) for (let column = 0; column < character.columns; column += 1) {
+    const left = Math.round(startX + column * panelWidth / character.columns);
+    const right = Math.round(startX + (column + 1) * panelWidth / character.columns);
+    const top = Math.round(startY + row * panelHeight / character.rows);
+    const bottom = Math.round(startY + (row + 1) * panelHeight / character.rows);
+    texture.add(`${characterId}:${row}:${column}`, 0, left, top, right - left, bottom - top);
+  }
 }
 
 function addPixelRect(scene, x, y, width, height, color, stroke = 0x4d3b38) {
@@ -119,9 +135,16 @@ function drawFurniture(scene, kind, x, y) {
 
 class BootScene extends Phaser.Scene {
   constructor() { super("boot"); }
-  preload() { this.load.image("world-map", worldMapUrl); this.load.spritesheet("characters", characterAtlasUrl, { frameWidth: CHARACTER_FRAME_WIDTH, frameHeight: CHARACTER_FRAME_HEIGHT, endFrame: 15 }); }
+  preload() {
+    this.load.image("world-map", worldMapUrl);
+    Object.entries(CHARACTER_SHEETS).forEach(([textureKey, url]) => this.load.image(textureKey, url));
+  }
   create() {
-    this.textures.get("characters").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    Object.entries(CHARACTERS).forEach(([characterId, character]) => {
+      const texture = this.textures.get(character.textureKey);
+      texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      registerCharacterFrames(texture, characterId, character);
+    });
     this.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
     const save = loadExploreSave(); const target = save.sceneId === WORLD_SCENE || AREAS[save.sceneId] ? save.sceneId : "home-living";
     this.scene.start(target === WORLD_SCENE ? WORLD_SCENE : "area", { areaId: target, saved: save });
@@ -183,7 +206,7 @@ class AreaScene extends Phaser.Scene {
     this.playerBounds = movementBounds(PLAYER_SCALE);
     const x = savedHere ? Phaser.Math.Clamp(this.saved.x, this.playerBounds.minX, this.playerBounds.maxX) : WIDTH / 2;
     const y = savedHere ? Phaser.Math.Clamp(this.saved.y, this.playerBounds.minY, this.playerBounds.maxY) : 560;
-    this.player = makePerson(this, x, y, { scale: PLAYER_SCALE }).setDepth(y + 20).setData("isPlayer", true);
+    this.player = makePerson(this, x, y, { scale: PLAYER_SCALE, characterId: "player" }).setDepth(y + 20).setData("isPlayer", true);
     this.keys = this.input.keyboard.addKeys("W,A,S,D,E,UP,DOWN,LEFT,RIGHT");
     this.input.on("pointerup", (pointer, objects) => {
       if (ui.dialogue.open || objects.some((object) => object.getData?.("interactiveRole"))) return;
@@ -231,11 +254,10 @@ class AreaScene extends Phaser.Scene {
     this.npcBounds = npcBounds;
     this.npcs = this.area.npcs.map((npc, index) => {
       const x = Phaser.Math.Linear(npcBounds.minX + 90, npcBounds.maxX - 90, (index % columns) / Math.max(1, columns - 1)); const y = npcBounds.minY + 45 + Math.floor(index / columns) * 170;
-      const frame = index % 4; const hue = (index * 37 + 20) % 150;
-      const person = makePerson(this, x, Math.min(y, npcBounds.maxY), { scale: NPC_SCALE, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y);
+      const person = makePerson(this, x, Math.min(y, npcBounds.maxY), { scale: NPC_SCALE, characterId: npc.characterId }).setDepth(y);
       const hitWidth = person.getData("displayWidth"); const hitHeight = person.getData("displayHeight");
       const hitZone = this.add.zone(person.x, person.y, hitWidth, hitHeight).setOrigin(.5, 1).setInteractive({ useHandCursor: true });
-      const dialogueNpc = { ...npc, frame, hue };
+      const dialogueNpc = { ...npc };
       person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, npcBounds.maxY) });
       hitZone.setData("interactiveRole", "npc");
       const activate = () => showDialogue(dialogueNpc);
