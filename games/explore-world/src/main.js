@@ -15,7 +15,14 @@ const WALK_FRAME_DURATION_MS = 180;
 const CHARACTER_COLUMNS = 4;
 const CHARACTER_FRAME_WIDTH = 319;
 const CHARACTER_FRAME_HEIGHT = 307;
-const CHARACTER_SIZE_MULTIPLIER = 4;
+const CHARACTER_SIZE_MULTIPLIER = 4 / 3;
+const PLAYER_SCALE = 1.02;
+const NPC_SCALE = .88;
+const PERSON_WIDTH = 92;
+const PERSON_HEIGHT = 118;
+const FLOOR_START_Y = 210;
+const BOTTOM_FOOT_MARGIN = 24;
+const INTERACTION_DISTANCE = 120;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
 const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 const roleTints = { family: 0xffd6b0, teacher: 0xffd37a, student: 0xaed8ff, doctor: 0xb8e7dc, nurse: 0xffc9d5, patient: 0xd9c8ff, cashier: 0xffd08d, staff: 0xbbe09b, customer: 0xe7c3a2 };
@@ -59,9 +66,19 @@ function showDialogue(npc) {
   tone(610, .08);
 }
 
-function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
+function personMetrics(scale = 1) {
   const personScale = scale * CHARACTER_SIZE_MULTIPLIER;
-  const displayWidth = 92 * personScale; const displayHeight = 118 * personScale;
+  return { displayWidth: PERSON_WIDTH * personScale, displayHeight: PERSON_HEIGHT * personScale };
+}
+
+function movementBounds(scale = 1) {
+  const { displayWidth, displayHeight } = personMetrics(scale);
+  const horizontalMargin = Math.max(82, displayWidth / 2 + 24);
+  return { minX: horizontalMargin, maxX: WIDTH - horizontalMargin, minY: FLOOR_START_Y + displayHeight, maxY: HEIGHT - BOTTOM_FOOT_MARGIN };
+}
+
+function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
+  const { displayWidth, displayHeight } = personMetrics(scale);
   const sprite = scene.add.sprite(0, 0, "characters", frame).setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
   if (tint) sprite.setTint(tint);
   const person = scene.add.container(x, y, [sprite]).setSize(displayWidth, displayHeight);
@@ -163,9 +180,10 @@ class AreaScene extends Phaser.Scene {
     this.interactables = [];
     this.drawRoom(); this.createDoors(); this.createNpcs();
     const savedHere = this.saved?.sceneId === this.areaId;
-    const x = savedHere ? Phaser.Math.Clamp(this.saved.x, 105, WIDTH - 105) : WIDTH / 2;
-    const y = savedHere ? Phaser.Math.Clamp(this.saved.y, 490, HEIGHT - 24) : 590;
-    this.player = makePerson(this, x, y, { scale: 1.02 }).setDepth(y + 20).setData("isPlayer", true);
+    this.playerBounds = movementBounds(PLAYER_SCALE);
+    const x = savedHere ? Phaser.Math.Clamp(this.saved.x, this.playerBounds.minX, this.playerBounds.maxX) : WIDTH / 2;
+    const y = savedHere ? Phaser.Math.Clamp(this.saved.y, this.playerBounds.minY, this.playerBounds.maxY) : 560;
+    this.player = makePerson(this, x, y, { scale: PLAYER_SCALE }).setDepth(y + 20).setData("isPlayer", true);
     this.keys = this.input.keyboard.addKeys("W,A,S,D,E,UP,DOWN,LEFT,RIGHT");
     this.input.on("pointerup", (pointer, objects) => {
       if (ui.dialogue.open || objects.some((object) => object.getData?.("interactiveRole"))) return;
@@ -209,15 +227,17 @@ class AreaScene extends Phaser.Scene {
 
   createNpcs() {
     const count = this.area.npcs.length; const columns = Math.min(6, Math.ceil(Math.sqrt(count)));
+    const npcBounds = movementBounds(NPC_SCALE);
+    this.npcBounds = npcBounds;
     this.npcs = this.area.npcs.map((npc, index) => {
-      const x = 260 + (index % columns) * (760 / Math.max(1, columns - 1)); const y = 500 + Math.floor(index / columns) * 170;
+      const x = Phaser.Math.Linear(npcBounds.minX + 90, npcBounds.maxX - 90, (index % columns) / Math.max(1, columns - 1)); const y = npcBounds.minY + 45 + Math.floor(index / columns) * 170;
       const frame = index % 4; const hue = (index * 37 + 20) % 150;
-      const person = makePerson(this, x, Math.min(y, 696), { scale: .88, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y);
+      const person = makePerson(this, x, Math.min(y, npcBounds.maxY), { scale: NPC_SCALE, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y);
       const hitWidth = person.getData("displayWidth"); const hitHeight = person.getData("displayHeight");
       person.setInteractive(new Phaser.Geom.Rectangle(-hitWidth / 2, -hitHeight, hitWidth, hitHeight), Phaser.Geom.Rectangle.Contains);
       person.input.cursor = "pointer";
       const dialogueNpc = { ...npc, frame, hue };
-      person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 696) });
+      person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, npcBounds.maxY) });
       const activate = () => showDialogue(dialogueNpc);
       person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
       this.interactables.push({ object: person, activate });
@@ -230,14 +250,14 @@ class AreaScene extends Phaser.Scene {
     this.npcs.forEach((npc, index) => {
       if (Math.random() > .55) return;
       const home = npc.getData("home"); const radius = ["student", "customer"].includes(npc.getData("npc").role) ? 68 : 38;
-      const targetX = Phaser.Math.Clamp(home.x + Phaser.Math.Between(-radius, radius), 190, WIDTH - 190); const targetY = Phaser.Math.Clamp(home.y + Phaser.Math.Between(-35, 35), 490, HEIGHT - 24);
+      const targetX = Phaser.Math.Clamp(home.x + Phaser.Math.Between(-radius, radius), this.npcBounds.minX, this.npcBounds.maxX); const targetY = Phaser.Math.Clamp(home.y + Phaser.Math.Between(-35, 35), this.npcBounds.minY, this.npcBounds.maxY);
       facePerson(npc, targetX - npc.x, targetY - npc.y, true, index * 170);
       this.tweens.add({ targets: npc, x: targetX, y: targetY, duration: 850 + index * 25, ease: "Sine.easeInOut", onUpdate: () => npc.setDepth(npc.y), onComplete: () => facePerson(npc, 0, 0, false) });
     });
   }
 
   movePlayer(x, y) {
-    const targetX = Phaser.Math.Clamp(x, 105, WIDTH - 105); const targetY = Phaser.Math.Clamp(y, 490, HEIGHT - 24);
+    const targetX = Phaser.Math.Clamp(x, this.playerBounds.minX, this.playerBounds.maxX); const targetY = Phaser.Math.Clamp(y, this.playerBounds.minY, this.playerBounds.maxY);
     this.tweens.killTweensOf(this.player); const dx = targetX - this.player.x; const dy = targetY - this.player.y;
     const duration = Math.max(180, Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY) * 2.4);
     facePerson(this.player, dx, dy, true);
@@ -256,7 +276,7 @@ class AreaScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
       const nearby = this.interactables
         .map((entry) => ({ ...entry, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, entry.object.x, entry.object.y) }))
-        .filter((entry) => entry.distance <= 165)
+        .filter((entry) => entry.distance <= INTERACTION_DISTANCE)
         .sort((a, b) => a.distance - b.distance)[0];
       nearby?.activate();
       return;
@@ -273,8 +293,8 @@ class AreaScene extends Phaser.Scene {
     this.wasKeyboardMoving = true;
     this.tweens.killTweensOf(this.player); const length = Math.hypot(dx, dy); dx /= length; dy /= length;
     const movementDelta = Math.min(delta, MAX_MOVEMENT_DELTA_MS);
-    this.player.x = Phaser.Math.Clamp(this.player.x + dx * WALK_SPEED * movementDelta / 1000, 105, WIDTH - 105);
-    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * movementDelta / 1000, 490, HEIGHT - 24);
+    this.player.x = Phaser.Math.Clamp(this.player.x + dx * WALK_SPEED * movementDelta / 1000, this.playerBounds.minX, this.playerBounds.maxX);
+    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * movementDelta / 1000, this.playerBounds.minY, this.playerBounds.maxY);
     this.player.setDepth(this.player.y + 20); facePerson(this.player, dx, dy, true, time); ui.saveStatus.textContent = "正在探索…";
     if (time - this.lastSavedAt > 900) this.persistPosition();
   }
