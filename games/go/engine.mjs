@@ -78,6 +78,22 @@ export function getLegalMoves(board, player, previousBoardKey = null) {
   return moves;
 }
 
+export function findObviousDeadStones(board) {
+  const dead = [];
+  const seen = new Set();
+  for (let row = 0; row < board.length; row += 1) for (let col = 0; col < board.length; col += 1) {
+    if (!board[row][col] || seen.has(`${row},${col}`)) continue;
+    const group = getGroup(board, row, col);
+    group.stones.forEach(([r, c]) => seen.add(`${r},${c}`));
+    if (group.liberties.length !== 1) continue;
+    const [libertyRow, libertyCol] = group.liberties[0];
+    const opponent = board[row][col] === BLACK ? WHITE : BLACK;
+    const capture = playMove(board, libertyRow, libertyCol, opponent);
+    if (capture.legal && capture.captured.length >= group.stones.length) group.stones.forEach(([r, c]) => dead.push(`${r},${c}`));
+  }
+  return dead;
+}
+
 function emptyRegion(board, startRow, startCol, visited) {
   const points = [];
   const borders = new Set();
@@ -121,7 +137,7 @@ export function scoreBoard(board, komi = DEFAULT_KOMI, deadStones = []) {
   const white = whiteStones + whiteTerritory + komi;
   return {
     blackStones, whiteStones, blackTerritory, whiteTerritory, komi, black, white,
-    winner: black > white ? BLACK : WHITE,
+    winner: black > white ? BLACK : white > black ? WHITE : null,
     margin: Math.abs(black - white),
   };
 }

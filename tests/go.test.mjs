@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLACK, EMPTY, WHITE, boardKey, chooseAiMove, createBoard, getGroup, getLegalMoves, isOwnEye, playMove, scoreBoard } from "../games/go/engine.mjs";
+import { BLACK, EMPTY, WHITE, boardKey, chooseAiMove, createBoard, findObviousDeadStones, getGroup, getLegalMoves, isOwnEye, playMove, scoreBoard } from "../games/go/engine.mjs";
 
 test("creates supported empty boards", () => {
   for (const size of [9, 13, 19]) {
@@ -91,4 +91,16 @@ test("legal move generation excludes occupied and suicidal points", () => {
   const legal = getLegalMoves(board, BLACK);
   assert.equal(legal.some(([r, c]) => r === 0 && c === 0), false);
   assert.equal(legal.some(([r, c]) => r === 0 && c === 1), false);
+});
+
+test("finds a group that is clearly capturable in one move", () => {
+  const board = createBoard(9);
+  board[1][1] = WHITE; board[0][1] = BLACK; board[1][0] = BLACK; board[2][1] = BLACK;
+  assert.deepEqual(findObviousDeadStones(board), ["1,1"]);
+});
+
+test("reports a tied score as a draw", () => {
+  const score = scoreBoard(createBoard(9), 0);
+  assert.equal(score.winner, null);
+  assert.equal(score.margin, 0);
 });
