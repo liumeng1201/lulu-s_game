@@ -94,24 +94,6 @@ function facePerson(person, dx, dy, moving, time = 0) {
   person.getData("sprite").setFrame(characterFrame(characterId, direction, frame)).setFlipX(characterFlipsHorizontally(characterId, direction));
 }
 
-function registerCharacterFrames(texture, characterId, character) {
-  const source = texture.getSourceImage();
-  const panel = character.panel ?? 0;
-  const panelX = panel % character.panelColumns;
-  const panelY = Math.floor(panel / character.panelColumns);
-  const startX = panelX * source.width / character.panelColumns;
-  const startY = panelY * source.height / character.panelRows;
-  const panelWidth = source.width / character.panelColumns;
-  const panelHeight = source.height / character.panelRows;
-  for (let row = 0; row < character.rows; row += 1) for (let column = 0; column < character.columns; column += 1) {
-    const left = Math.round(startX + column * panelWidth / character.columns);
-    const right = Math.round(startX + (column + 1) * panelWidth / character.columns);
-    const top = Math.round(startY + row * panelHeight / character.rows);
-    const bottom = Math.round(startY + (row + 1) * panelHeight / character.rows);
-    texture.add(`${characterId}:${row}:${column}`, 0, left, top, right - left, bottom - top);
-  }
-}
-
 function addPixelRect(scene, x, y, width, height, color, stroke = 0x4d3b38) {
   return scene.add.rectangle(x, y, width, height, color).setStrokeStyle(4, stroke);
 }
@@ -137,14 +119,10 @@ class BootScene extends Phaser.Scene {
   constructor() { super("boot"); }
   preload() {
     this.load.image("world-map", worldMapUrl);
-    Object.entries(CHARACTER_SHEETS).forEach(([textureKey, url]) => this.load.image(textureKey, url));
+    Object.entries(CHARACTER_SHEETS).forEach(([textureKey, url]) => this.load.spritesheet(textureKey, url, { frameWidth: 256, frameHeight: 256, endFrame: 15 }));
   }
   create() {
-    Object.entries(CHARACTERS).forEach(([characterId, character]) => {
-      const texture = this.textures.get(character.textureKey);
-      texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
-      registerCharacterFrames(texture, characterId, character);
-    });
+    Object.keys(CHARACTER_SHEETS).forEach((textureKey) => this.textures.get(textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST));
     this.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
     const save = loadExploreSave(); const target = save.sceneId === WORLD_SCENE || AREAS[save.sceneId] ? save.sceneId : "home-living";
     this.scene.start(target === WORLD_SCENE ? WORLD_SCENE : "area", { areaId: target, saved: save });
