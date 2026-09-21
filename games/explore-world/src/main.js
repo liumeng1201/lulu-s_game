@@ -62,12 +62,13 @@ function cropCharacter(sprite, direction = 0, frame = 0) {
 
 function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
   const personScale = scale * CHARACTER_SIZE_MULTIPLIER;
-  const shadow = scene.add.rectangle(0, 0, 48 * personScale, 12 * personScale, 0x34283c, .2);
-  const sprite = scene.add.image(0, 0, "characters").setOrigin(.5, 1).setDisplaySize(92 * personScale, 118 * personScale);
+  const displayWidth = 92 * personScale; const displayHeight = 118 * personScale;
+  const sprite = scene.add.image(0, 0, "characters").setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
   cropCharacter(sprite, 0, frame);
   if (tint) sprite.setTint(tint);
-  const person = scene.add.container(x, y, [shadow, sprite]).setSize(92 * personScale, 48 * personScale);
-  return person.setData("sprite", sprite).setData("direction", 0).setData("walkFrame", 0);
+  const person = scene.add.container(x, y, [sprite]).setSize(displayWidth, displayHeight);
+  return person.setData("sprite", sprite).setData("displayWidth", displayWidth).setData("displayHeight", displayHeight)
+    .setData("direction", 0).setData("walkFrame", 0);
 }
 
 function facePerson(person, dx, dy, moving, time = 0) {
@@ -212,11 +213,12 @@ class AreaScene extends Phaser.Scene {
     this.npcs = this.area.npcs.map((npc, index) => {
       const x = 260 + (index % columns) * (760 / Math.max(1, columns - 1)); const y = 500 + Math.floor(index / columns) * 170;
       const frame = index % 4; const hue = (index * 37 + 20) % 150;
-      const person = makePerson(this, x, Math.min(y, 696), { scale: .88, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y).setInteractive({ useHandCursor: true });
+      const person = makePerson(this, x, Math.min(y, 696), { scale: .88, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y);
+      const hitWidth = person.getData("displayWidth"); const hitHeight = person.getData("displayHeight");
+      person.setInteractive(new Phaser.Geom.Rectangle(-hitWidth / 2, -hitHeight, hitWidth, hitHeight), Phaser.Geom.Rectangle.Contains);
+      person.input.cursor = "pointer";
       const dialogueNpc = { ...npc, frame, hue };
-      const promptY = -(118 * .88 * CHARACTER_SIZE_MULTIPLIER) - 18;
-      const prompt = addPixelRect(this, 0, promptY, 28, 28, 0xfff0a3, 0x493a58); const mark = this.add.text(0, promptY - 1, "!", { fontFamily: "monospace", fontSize: "20px", fontStyle: "bold", color: "#493a58" }).setOrigin(.5);
-      person.add([prompt, mark]).setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 696) });
+      person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 696) });
       const activate = () => showDialogue(dialogueNpc);
       person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
       this.interactables.push({ object: person, activate });
