@@ -1,4 +1,4 @@
-import { BLACK, WHITE, boardKey, createBoard, getGroup, playMove, scoreBoard } from "./engine.mjs";
+import { BLACK, WHITE, boardKey, createBoard, findObviousDeadStones, getGroup, getLegalMoves, playMove, scoreBoard } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
 import { validateGoSave } from "./save-state.mjs";
@@ -7,7 +7,7 @@ const SAVE_KEY = "lulu-go-save-v1";
 const names = { [BLACK]: "黑棋", [WHITE]: "白棋" };
 const difficultyNames = { easy: "简单", medium: "中等", hard: "困难" };
 const sizeNames = { 9: "九路", 13: "十三路", 19: "十九路" };
-const ids = ["board", "modePanel", "difficultyGroup", "startButton", "resultPanel", "resultTitle", "resultMessage", "scoreDetails", "scoringPanel", "scoringText", "resumeButton", "confirmScoreButton", "restartButton", "resultModeButton", "undoButton", "passButton", "restartControl", "modeButton", "soundButton", "modeBadge", "turnText", "blackCard", "whiteCard", "blackName", "whiteName", "blackCaptures", "whiteCaptures", "notice"];
+const ids = ["board", "modePanel", "difficultyGroup", "startButton", "resultPanel", "resultTitle", "resultMessage", "scoreDetails", "scoringPanel", "scoringText", "resumeButton", "autoJudgeButton", "confirmScoreButton", "restartButton", "resultModeButton", "undoButton", "passButton", "restartControl", "modeButton", "soundButton", "modeBadge", "turnText", "blackCard", "whiteCard", "blackName", "whiteName", "blackCaptures", "whiteCaptures", "notice"];
 const elements = Object.fromEntries(ids.map((id) => [id, document.querySelector(`#${id}`)]));
 const context = elements.board.getContext("2d");
 
@@ -160,8 +160,8 @@ function finishGame() {
   state.running = false; state.thinking = false; state.scoring = false;
   elements.scoringPanel.classList.add("hidden");
   const score = scoreBoard(state.board, undefined, state.deadStones);
-  elements.resultTitle.textContent = `${names[score.winner]}获胜！`;
-  elements.resultMessage.textContent = `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目`;
+  elements.resultTitle.textContent = score.winner ? `${names[score.winner]}获胜！` : "和棋！";
+  elements.resultMessage.textContent = score.winner ? `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目` : "双方得分相同。";
   elements.scoreDetails.innerHTML = `<span>黑棋 ${score.black.toFixed(1)}<small>棋子 ${score.blackStones} · 地 ${score.blackTerritory}</small></span><span>白棋 ${score.white.toFixed(1)}<small>棋子 ${score.whiteStones} · 地 ${score.whiteTerritory} · 贴目 ${score.komi}</small></span>`;
   elements.resultPanel.classList.remove("hidden");
   playTone(score.winner === BLACK ? 620 : 720, .4); updateStatus(); elements.restartButton.focus();
@@ -177,6 +177,7 @@ function placeStone(row, col, automated = false) {
   const player = state.currentPlayer;
   state.board = result.board; state.captures[player] += result.captured.length; state.consecutivePasses = 0;
   state.lastMove = { row, col }; state.cursor = { row, col }; state.currentPlayer = player === BLACK ? WHITE : BLACK;
+  if (!getLegalMoves(state.board, state.currentPlayer, previousPositionKey()).length) { enterScoring(); return true; }
   elements.notice.textContent = result.captured.length ? `${names[player]}提掉了 ${result.captured.length} 颗棋子！` : `${names[state.currentPlayer]}请落子`;
   playTone(player === BLACK ? 260 : 370); drawBoard(); updateStatus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
@@ -230,8 +231,8 @@ function undo() {
 }
 
 function enterScoring() {
-  state.running = false; state.scoring = true; state.deadStones = new Set(); state.scoringConfirmations = new Set();
-  elements.scoringPanel.classList.remove("hidden"); elements.notice.textContent = "点击棋盘上的死棋进行标记，双方确认后数子"; updateScoringStatus(); drawBoard(); updateStatus(); elements.board.focus();
+  state.running = false; state.scoring = true; state.deadStones = new Set(findObviousDeadStones(state.board)); state.scoringConfirmations = new Set();
+  elements.scoringPanel.classList.remove("hidden"); elements.notice.textContent = state.deadStones.size ? "系统已预标记明显死棋，可调整后确认判定" : "未发现明显死棋，可手动标记后确认判定"; updateScoringStatus(); drawBoard(); updateStatus(); elements.board.focus();
   saveGame();
 }
 
@@ -260,6 +261,13 @@ function confirmScoring() {
   saveGame();
 }
 
+function autoJudge() {
+  if (!state.scoring) return;
+  state.deadStones = new Set(findObviousDeadStones(state.board));
+  elements.notice.textContent = "已按明显死棋自动判定，正在计算最终目数";
+  finishGame();
+}
+
 function resumeGame() {
   if (!state.scoring) return;
   state.scoring = false; state.running = true; state.consecutivePasses = 0; state.deadStones.clear(); state.scoringConfirmations.clear();
@@ -281,8 +289,8 @@ function restoreUi(value) {
     if (state.scoring) updateScoringStatus();
     if (value.resultOpen) {
       const score = scoreBoard(state.board, undefined, state.deadStones);
-      elements.resultTitle.textContent = `${names[score.winner]}获胜！`;
-      elements.resultMessage.textContent = `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目`;
+      elements.resultTitle.textContent = score.winner ? `${names[score.winner]}获胜！` : "和棋！";
+      elements.resultMessage.textContent = score.winner ? `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目` : "双方得分相同。";
       elements.scoreDetails.innerHTML = `<span>黑棋 ${score.black.toFixed(1)}<small>棋子 ${score.blackStones} · 地 ${score.blackTerritory}</small></span><span>白棋 ${score.white.toFixed(1)}<small>棋子 ${score.whiteStones} · 地 ${score.whiteTerritory} · 贴目 ${score.komi}</small></span>`;
     }
   }
@@ -325,7 +333,7 @@ elements.board.addEventListener("keydown", (event) => {
 elements.board.addEventListener("focus", drawBoard); elements.board.addEventListener("blur", drawBoard);
 elements.startButton.addEventListener("click", resetGame); elements.restartButton.addEventListener("click", resetGame); elements.restartControl.addEventListener("click", resetGame);
 elements.undoButton.addEventListener("click", undo); elements.passButton.addEventListener("click", () => passTurn(false)); elements.modeButton.addEventListener("click", showModePanel); elements.resultModeButton.addEventListener("click", showModePanel);
-elements.resumeButton.addEventListener("click", resumeGame); elements.confirmScoreButton.addEventListener("click", confirmScoring);
+elements.resumeButton.addEventListener("click", resumeGame); elements.autoJudgeButton.addEventListener("click", autoJudge); elements.confirmScoreButton.addEventListener("click", confirmScoring);
 elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); saveGame(); });
 window.addEventListener("resize", drawBoard);
 restartAiWorker();
