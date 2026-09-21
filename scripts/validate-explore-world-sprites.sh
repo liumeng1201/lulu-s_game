@@ -27,6 +27,18 @@ for file in "$asset_dir"/*.png; do
     echo "frame boundary bleed: $file"
     failed=1
   fi
+  cell_bleed=$(convert "$file" -alpha extract -scale 64x64\! txt:- |
+    awk -F '[,:()]' 'NR > 1 {
+      gsub(/ /, "", $1); gsub(/ /, "", $2); gsub(/ /, "", $4)
+      x = $1 + 0; y = $2 + 0; value = $4 + 0
+      # At 64px, each 256px frame is 16px and the configured 12px gutter
+      # becomes one safety pixel on each side of every frame.
+      if (value > 0 && (x % 16 == 0 || x % 16 == 15 || y % 16 == 0 || y % 16 == 15)) { print "bleed"; exit }
+    }')
+  if [ -n "$cell_bleed" ]; then
+    echo "cell boundary bleed: $file"
+    failed=1
+  fi
 done
 
 exit "$failed"
