@@ -234,12 +234,13 @@ class AreaScene extends Phaser.Scene {
       const frame = index % 4; const hue = (index * 37 + 20) % 150;
       const person = makePerson(this, x, Math.min(y, npcBounds.maxY), { scale: NPC_SCALE, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y);
       const hitWidth = person.getData("displayWidth"); const hitHeight = person.getData("displayHeight");
-      person.setInteractive(new Phaser.Geom.Rectangle(-hitWidth / 2, -hitHeight, hitWidth, hitHeight), Phaser.Geom.Rectangle.Contains);
-      person.input.cursor = "pointer";
+      const hitZone = this.add.zone(person.x, person.y, hitWidth, hitHeight).setOrigin(.5, 1).setInteractive({ useHandCursor: true });
       const dialogueNpc = { ...npc, frame, hue };
       person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, npcBounds.maxY) });
+      hitZone.setData("interactiveRole", "npc");
       const activate = () => showDialogue(dialogueNpc);
-      person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
+      hitZone.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
+      person.setData("hitZone", hitZone);
       this.interactables.push({ object: person, activate });
       return person;
     });
@@ -252,7 +253,8 @@ class AreaScene extends Phaser.Scene {
       const home = npc.getData("home"); const radius = ["student", "customer"].includes(npc.getData("npc").role) ? 68 : 38;
       const targetX = Phaser.Math.Clamp(home.x + Phaser.Math.Between(-radius, radius), this.npcBounds.minX, this.npcBounds.maxX); const targetY = Phaser.Math.Clamp(home.y + Phaser.Math.Between(-35, 35), this.npcBounds.minY, this.npcBounds.maxY);
       facePerson(npc, targetX - npc.x, targetY - npc.y, true, index * 170);
-      this.tweens.add({ targets: npc, x: targetX, y: targetY, duration: 850 + index * 25, ease: "Sine.easeInOut", onUpdate: () => npc.setDepth(npc.y), onComplete: () => facePerson(npc, 0, 0, false) });
+      const hitZone = npc.getData("hitZone");
+      this.tweens.add({ targets: [npc, hitZone], x: targetX, y: targetY, duration: 850 + index * 25, ease: "Sine.easeInOut", onUpdate: () => { hitZone.setPosition(npc.x, npc.y); npc.setDepth(npc.y); }, onComplete: () => facePerson(npc, 0, 0, false) });
     });
   }
 
