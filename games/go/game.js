@@ -1,4 +1,4 @@
-import { BLACK, WHITE, boardKey, createBoard, findObviousDeadStones, getGroup, getLegalMoves, playMove, scoreBoard } from "./engine.mjs";
+import { BLACK, WHITE, boardKey, createBoard, findObviousDeadStones, getGroup, playMove, scoreBoard } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
 import { validateGoSave } from "./save-state.mjs";
@@ -164,7 +164,7 @@ function finishGame() {
   elements.resultMessage.textContent = score.winner ? `${names[score.winner]}领先 ${score.margin.toFixed(1)} 目` : "双方得分相同。";
   elements.scoreDetails.innerHTML = `<span>黑棋 ${score.black.toFixed(1)}<small>棋子 ${score.blackStones} · 地 ${score.blackTerritory}</small></span><span>白棋 ${score.white.toFixed(1)}<small>棋子 ${score.whiteStones} · 地 ${score.whiteTerritory} · 贴目 ${score.komi}</small></span>`;
   elements.resultPanel.classList.remove("hidden");
-  playTone(score.winner === BLACK ? 620 : 720, .4); updateStatus(); elements.restartButton.focus();
+  playTone(score.winner === BLACK ? 620 : score.winner === WHITE ? 720 : 440, .4); updateStatus(); elements.restartButton.focus();
   saveGame();
 }
 
@@ -177,7 +177,6 @@ function placeStone(row, col, automated = false) {
   const player = state.currentPlayer;
   state.board = result.board; state.captures[player] += result.captured.length; state.consecutivePasses = 0;
   state.lastMove = { row, col }; state.cursor = { row, col }; state.currentPlayer = player === BLACK ? WHITE : BLACK;
-  if (!getLegalMoves(state.board, state.currentPlayer, previousPositionKey()).length) { enterScoring(); return true; }
   elements.notice.textContent = result.captured.length ? `${names[player]}提掉了 ${result.captured.length} 颗棋子！` : `${names[state.currentPlayer]}请落子`;
   playTone(player === BLACK ? 260 : 370); drawBoard(); updateStatus();
   if (state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
@@ -232,7 +231,7 @@ function undo() {
 
 function enterScoring() {
   state.running = false; state.scoring = true; state.deadStones = new Set(findObviousDeadStones(state.board)); state.scoringConfirmations = new Set();
-  elements.scoringPanel.classList.remove("hidden"); elements.notice.textContent = state.deadStones.size ? "系统已预标记明显死棋，可调整后确认判定" : "未发现明显死棋，可手动标记后确认判定"; updateScoringStatus(); drawBoard(); updateStatus(); elements.board.focus();
+  elements.scoringPanel.classList.remove("hidden"); elements.notice.textContent = state.deadStones.size ? "系统已标记候选死棋，可调整后由双方确认" : "未发现候选死棋，可手动标记后由双方确认"; updateScoringStatus(); drawBoard(); updateStatus(); elements.board.focus();
   saveGame();
 }
 
@@ -264,8 +263,11 @@ function confirmScoring() {
 function autoJudge() {
   if (!state.scoring) return;
   state.deadStones = new Set(findObviousDeadStones(state.board));
-  elements.notice.textContent = "已按明显死棋自动判定，正在计算最终目数";
-  finishGame();
+  state.scoringConfirmations.clear();
+  elements.notice.textContent = state.deadStones.size
+    ? "已标出候选死棋；请双方检查、调整并确认"
+    : "未找到候选死棋；请手动标记后由双方确认";
+  updateScoringStatus(); drawBoard(); updateStatus(); saveGame();
 }
 
 function resumeGame() {

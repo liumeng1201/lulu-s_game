@@ -56,17 +56,17 @@ function showDialogue(npc) {
 
 function cropCharacter(sprite, direction = 0, frame = 0) {
   const source = sprite.texture.getSourceImage();
-  const cellWidth = source.width / 4; const cellHeight = source.height / 4;
+  const cellWidth = Math.floor(source.width / 4); const cellHeight = Math.floor(source.height / 4);
   sprite.setCrop(frame * cellWidth, direction * cellHeight, cellWidth, cellHeight);
 }
 
 function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
   const personScale = scale * CHARACTER_SIZE_MULTIPLIER;
-  const shadow = scene.add.rectangle(0, 40 * personScale, 48 * personScale, 12 * personScale, 0x34283c, .2);
-  const sprite = scene.add.image(0, 0, "characters").setDisplaySize(92 * personScale, 118 * personScale);
+  const shadow = scene.add.rectangle(0, 0, 48 * personScale, 12 * personScale, 0x34283c, .2);
+  const sprite = scene.add.image(0, 0, "characters").setOrigin(.5, 1).setDisplaySize(92 * personScale, 118 * personScale);
   cropCharacter(sprite, 0, frame);
   if (tint) sprite.setTint(tint);
-  const person = scene.add.container(x, y, [shadow, sprite]).setSize(92 * personScale, 118 * personScale);
+  const person = scene.add.container(x, y, [shadow, sprite]).setSize(92 * personScale, 48 * personScale);
   return person.setData("sprite", sprite).setData("direction", 0).setData("walkFrame", 0);
 }
 
@@ -164,7 +164,7 @@ class AreaScene extends Phaser.Scene {
     this.drawRoom(); this.createDoors(); this.createNpcs();
     const savedHere = this.saved?.sceneId === this.areaId;
     const x = savedHere ? Phaser.Math.Clamp(this.saved.x, 105, WIDTH - 105) : WIDTH / 2;
-    const y = savedHere ? Phaser.Math.Clamp(this.saved.y, 275, HEIGHT - 78) : 520;
+    const y = savedHere ? Phaser.Math.Clamp(this.saved.y, 490, HEIGHT - 24) : 590;
     this.player = makePerson(this, x, y, { scale: 1.02 }).setDepth(y + 20).setData("isPlayer", true);
     this.keys = this.input.keyboard.addKeys("W,A,S,D,E,UP,DOWN,LEFT,RIGHT");
     this.input.on("pointerup", (pointer, objects) => {
@@ -210,12 +210,13 @@ class AreaScene extends Phaser.Scene {
   createNpcs() {
     const count = this.area.npcs.length; const columns = Math.min(6, Math.ceil(Math.sqrt(count)));
     this.npcs = this.area.npcs.map((npc, index) => {
-      const x = 300 + (index % columns) * (680 / Math.max(1, columns - 1)); const y = 350 + Math.floor(index / columns) * 150;
+      const x = 260 + (index % columns) * (760 / Math.max(1, columns - 1)); const y = 500 + Math.floor(index / columns) * 170;
       const frame = index % 4; const hue = (index * 37 + 20) % 150;
-      const person = makePerson(this, x, Math.min(y, 620), { scale: .88, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y).setInteractive({ useHandCursor: true });
+      const person = makePerson(this, x, Math.min(y, 696), { scale: .88, tint: roleTints[npc.role] ?? 0xffffff, frame }).setDepth(y).setInteractive({ useHandCursor: true });
       const dialogueNpc = { ...npc, frame, hue };
-      const prompt = addPixelRect(this, 0, -72, 28, 28, 0xfff0a3, 0x493a58); const mark = this.add.text(0, -73, "!", { fontFamily: "monospace", fontSize: "20px", fontStyle: "bold", color: "#493a58" }).setOrigin(.5);
-      person.add([prompt, mark]).setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 620) });
+      const promptY = -(118 * .88 * CHARACTER_SIZE_MULTIPLIER) - 18;
+      const prompt = addPixelRect(this, 0, promptY, 28, 28, 0xfff0a3, 0x493a58); const mark = this.add.text(0, promptY - 1, "!", { fontFamily: "monospace", fontSize: "20px", fontStyle: "bold", color: "#493a58" }).setOrigin(.5);
+      person.add([prompt, mark]).setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, 696) });
       const activate = () => showDialogue(dialogueNpc);
       person.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
       this.interactables.push({ object: person, activate });
@@ -228,14 +229,14 @@ class AreaScene extends Phaser.Scene {
     this.npcs.forEach((npc, index) => {
       if (Math.random() > .55) return;
       const home = npc.getData("home"); const radius = ["student", "customer"].includes(npc.getData("npc").role) ? 68 : 38;
-      const targetX = Phaser.Math.Clamp(home.x + Phaser.Math.Between(-radius, radius), 190, WIDTH - 190); const targetY = Phaser.Math.Clamp(home.y + Phaser.Math.Between(-35, 35), 290, HEIGHT - 74);
+      const targetX = Phaser.Math.Clamp(home.x + Phaser.Math.Between(-radius, radius), 190, WIDTH - 190); const targetY = Phaser.Math.Clamp(home.y + Phaser.Math.Between(-35, 35), 490, HEIGHT - 24);
       facePerson(npc, targetX - npc.x, targetY - npc.y, true, index * 170);
       this.tweens.add({ targets: npc, x: targetX, y: targetY, duration: 850 + index * 25, ease: "Sine.easeInOut", onUpdate: () => npc.setDepth(npc.y), onComplete: () => facePerson(npc, 0, 0, false) });
     });
   }
 
   movePlayer(x, y) {
-    const targetX = Phaser.Math.Clamp(x, 105, WIDTH - 105); const targetY = Phaser.Math.Clamp(y, 270, HEIGHT - 72);
+    const targetX = Phaser.Math.Clamp(x, 105, WIDTH - 105); const targetY = Phaser.Math.Clamp(y, 490, HEIGHT - 24);
     this.tweens.killTweensOf(this.player); const dx = targetX - this.player.x; const dy = targetY - this.player.y;
     const duration = Math.max(180, Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY) * 2.4);
     facePerson(this.player, dx, dy, true);
@@ -271,7 +272,7 @@ class AreaScene extends Phaser.Scene {
     this.wasKeyboardMoving = true;
     this.tweens.killTweensOf(this.player); const length = Math.hypot(dx, dy); dx /= length; dy /= length;
     this.player.x = Phaser.Math.Clamp(this.player.x + dx * WALK_SPEED * delta / 1000, 105, WIDTH - 105);
-    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * delta / 1000, 270, HEIGHT - 72);
+    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * delta / 1000, 490, HEIGHT - 24);
     this.player.setDepth(this.player.y + 20); facePerson(this.player, dx, dy, true, time); ui.saveStatus.textContent = "正在探索…";
     if (time - this.lastSavedAt > 900) this.persistPosition();
   }

@@ -6,7 +6,7 @@ export function createSafeJsonStore(key, storage) {
     if (persistent) {
       try {
         const stored = storage.getItem(key);
-        if (stored !== null) memoryValue = stored;
+        memoryValue = stored;
       } catch { persistent = false; }
     }
     if (memoryValue === null) return null;
