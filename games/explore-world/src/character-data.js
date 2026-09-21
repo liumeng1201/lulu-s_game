@@ -31,7 +31,7 @@ import customer2Url from "../assets/characters/customer-2.png";
 import customer3Url from "../assets/characters/customer-3.png";
 import customer4Url from "../assets/characters/customer-4.png";
 
-const individual = (textureKey, url, rows = 4) => ({ textureKey, url, columns: 4, rows, panelColumns: 1, panelRows: 1 });
+const individual = (textureKey, url) => ({ textureKey, url, columns: 4, rows: 4, panelColumns: 1, panelRows: 1 });
 
 export const CHARACTER_SHEETS = {
   "character-player": playerUrl,
@@ -53,17 +53,17 @@ export const CHARACTER_SHEETS = {
 export const CHARACTERS = {
   player: individual("character-player", playerUrl),
   mother: individual("character-mother", motherUrl), father: individual("character-father", fatherUrl),
-  grandfather: individual("character-grandfather", grandfatherUrl, 3), grandmother: individual("character-grandmother", grandmotherUrl, 3),
+  grandfather: individual("character-grandfather", grandfatherUrl), grandmother: individual("character-grandmother", grandmotherUrl),
   brother: individual("character-brother", brotherUrl), "duty-teacher": individual("character-duty-teacher", dutyTeacherUrl),
-  "lin-teacher": individual("character-lin-teacher", linTeacherUrl, 3), "student-1": individual("character-student-1", student1Url, 3),
+  "lin-teacher": individual("character-lin-teacher", linTeacherUrl), "student-1": individual("character-student-1", student1Url),
   "student-2": individual("character-student-2", student2Url), "student-3": individual("character-student-3", student3Url),
-  "student-4": individual("character-student-4", student4Url, 3), "student-5": individual("character-student-5", student5Url, 3),
+  "student-4": individual("character-student-4", student4Url), "student-5": individual("character-student-5", student5Url),
   "student-6": individual("character-student-6", student6Url), "student-7": individual("character-student-7", student7Url),
-  "student-8": individual("character-student-8", student8Url, 3), "student-9": individual("character-student-9", student9Url, 3),
+  "student-8": individual("character-student-8", student8Url), "student-9": individual("character-student-9", student9Url),
   "student-10": individual("character-student-10", student10Url), "guide-nurse": individual("character-guide-nurse", guideNurseUrl),
-  "chen-nurse": individual("character-chen-nurse", chenNurseUrl, 3), "wang-doctor": individual("character-wang-doctor", wangDoctorUrl, 3),
+  "chen-nurse": individual("character-chen-nurse", chenNurseUrl), "wang-doctor": individual("character-wang-doctor", wangDoctorUrl),
   "patient-1": individual("character-patient-1", patient1Url), "patient-2": individual("character-patient-2", patient2Url),
-  "patient-3": individual("character-patient-3", patient3Url, 3), "patient-4": individual("character-patient-4", patient4Url, 3),
+  "patient-3": individual("character-patient-3", patient3Url), "patient-4": individual("character-patient-4", patient4Url),
   cashier: individual("character-cashier", cashierUrl),
   "stock-clerk": individual("character-stock-clerk", stockClerkUrl),
   "floor-clerk": individual("character-floor-clerk", floorClerkUrl),
@@ -74,27 +74,16 @@ export const CHARACTERS = {
 };
 
 export function characterFrame(characterId, direction = 0, walkFrame = 0) {
-  const character = CHARACTERS[characterId];
-  const sourceRow = character.rows === 3 && direction === 2 ? 1 : direction === 3 ? character.rows - 1 : direction;
-  return `${characterId}:${sourceRow}:${walkFrame}`;
+  return direction * 4 + walkFrame;
 }
 
-export function characterFlipsHorizontally(characterId, direction) {
-  return CHARACTERS[characterId].rows === 3 && direction === 2;
-}
+export function characterFlipsHorizontally() { return false; }
 
 export function characterPortrait(characterId) {
   const character = CHARACTERS[characterId];
-  const panel = character.panel ?? 0;
-  const panelX = panel % character.panelColumns;
-  const panelY = Math.floor(panel / character.panelColumns);
-  const columns = character.portraitColumns ?? character.columns * character.panelColumns;
-  const rows = character.portraitRows ?? character.rows * character.panelRows;
-  const column = character.portraitColumn ?? panelX * character.columns;
-  const row = character.portraitRow ?? panelY * character.rows;
   return {
     url: character.url,
-    backgroundSize: `${columns * 100}% ${rows * 100}%`,
-    backgroundPosition: `${column * 100 / Math.max(1, columns - 1)}% ${row * 100 / Math.max(1, rows - 1)}%`,
+    backgroundSize: "400% 400%",
+    backgroundPosition: "0% 0%",
   };
 }
