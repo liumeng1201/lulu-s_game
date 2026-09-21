@@ -10,6 +10,11 @@ const WIDTH = 1280;
 const HEIGHT = 720;
 const TILE = 32;
 const WALK_SPEED = 230;
+const MAX_MOVEMENT_DELTA_MS = 40;
+const WALK_FRAME_DURATION_MS = 180;
+const CHARACTER_COLUMNS = 4;
+const CHARACTER_FRAME_WIDTH = 319;
+const CHARACTER_FRAME_HEIGHT = 307;
 const CHARACTER_SIZE_MULTIPLIER = 4;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
 const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
@@ -54,30 +59,24 @@ function showDialogue(npc) {
   tone(610, .08);
 }
 
-function cropCharacter(sprite, direction = 0, frame = 0) {
-  const source = sprite.texture.getSourceImage();
-  const cellWidth = Math.floor(source.width / 4); const cellHeight = Math.floor(source.height / 4);
-  sprite.setCrop(frame * cellWidth, direction * cellHeight, cellWidth, cellHeight);
-}
-
 function makePerson(scene, x, y, { scale = 1, tint, frame = 0 } = {}) {
   const personScale = scale * CHARACTER_SIZE_MULTIPLIER;
   const displayWidth = 92 * personScale; const displayHeight = 118 * personScale;
-  const sprite = scene.add.image(0, 0, "characters").setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
-  cropCharacter(sprite, 0, frame);
+  const sprite = scene.add.sprite(0, 0, "characters", frame).setOrigin(.5, 1).setDisplaySize(displayWidth, displayHeight);
   if (tint) sprite.setTint(tint);
   const person = scene.add.container(x, y, [sprite]).setSize(displayWidth, displayHeight);
   return person.setData("sprite", sprite).setData("displayWidth", displayWidth).setData("displayHeight", displayHeight)
-    .setData("direction", 0).setData("walkFrame", 0);
+    .setData("direction", 0).setData("walkFrame", frame);
 }
 
 function facePerson(person, dx, dy, moving, time = 0) {
   let direction = person.getData("direction") ?? 0;
   if (Math.abs(dx) > Math.abs(dy)) direction = dx < 0 ? 1 : 2;
   else if (Math.abs(dy) > 0) direction = dy < 0 ? 3 : 0;
-  const frame = moving ? 1 + Math.floor(time / 150) % 3 : 0;
+  const frame = moving ? 1 + Math.floor(time / WALK_FRAME_DURATION_MS) % 3 : 0;
+  if (direction === person.getData("direction") && frame === person.getData("walkFrame")) return;
   person.setData("direction", direction).setData("walkFrame", frame);
-  cropCharacter(person.getData("sprite"), direction, frame);
+  person.getData("sprite").setFrame(direction * CHARACTER_COLUMNS + frame);
 }
 
 function addPixelRect(scene, x, y, width, height, color, stroke = 0x4d3b38) {
@@ -103,7 +102,7 @@ function drawFurniture(scene, kind, x, y) {
 
 class BootScene extends Phaser.Scene {
   constructor() { super("boot"); }
-  preload() { this.load.image("world-map", worldMapUrl); this.load.image("characters", characterAtlasUrl); }
+  preload() { this.load.image("world-map", worldMapUrl); this.load.spritesheet("characters", characterAtlasUrl, { frameWidth: CHARACTER_FRAME_WIDTH, frameHeight: CHARACTER_FRAME_HEIGHT, endFrame: 15 }); }
   create() {
     this.textures.get("characters").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -273,8 +272,9 @@ class AreaScene extends Phaser.Scene {
     }
     this.wasKeyboardMoving = true;
     this.tweens.killTweensOf(this.player); const length = Math.hypot(dx, dy); dx /= length; dy /= length;
-    this.player.x = Phaser.Math.Clamp(this.player.x + dx * WALK_SPEED * delta / 1000, 105, WIDTH - 105);
-    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * delta / 1000, 490, HEIGHT - 24);
+    const movementDelta = Math.min(delta, MAX_MOVEMENT_DELTA_MS);
+    this.player.x = Phaser.Math.Clamp(this.player.x + dx * WALK_SPEED * movementDelta / 1000, 105, WIDTH - 105);
+    this.player.y = Phaser.Math.Clamp(this.player.y + dy * WALK_SPEED * movementDelta / 1000, 490, HEIGHT - 24);
     this.player.setDepth(this.player.y + 20); facePerson(this.player, dx, dy, true, time); ui.saveStatus.textContent = "正在探索…";
     if (time - this.lastSavedAt > 900) this.persistPosition();
   }
