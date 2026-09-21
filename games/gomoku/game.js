@@ -1,4 +1,4 @@
-import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, chooseAiMove, createBoard, isBoardFull } from "./engine.mjs";
+import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, createBoard, isBoardFull } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
 import { validateGomokuSave } from "./save-state.mjs";
@@ -9,8 +9,9 @@ const difficultyNames = { easy: "简单", medium: "中等", hard: "困难" };
 const elements = Object.fromEntries(["board", "modePanel", "difficultyGroup", "startButton", "resultPanel", "resultEmoji", "resultTitle", "resultMessage", "restartButton", "resultModeButton", "undoButton", "restartControl", "modeButton", "soundButton", "modeBadge", "turnText", "blackCard", "whiteCard", "blackName", "whiteName"].map((id) => [id, document.querySelector(`#${id}`)]));
 const context = elements.board.getContext("2d");
 
-const state = { mode: "pvp", difficulty: "medium", board: createBoard(), currentPlayer: BLACK, running: false, thinking: false, winner: null, winningLine: [], history: [], soundOn: true, cursor: { row: 7, col: 7 }, aiTimer: null };
+const state = { mode: "pvp", difficulty: "medium", board: createBoard(), currentPlayer: BLACK, running: false, thinking: false, winner: null, winningLine: [], history: [], soundOn: true, cursor: { row: 7, col: 7 }, aiRequestId: 0 };
 let audioContext;
+let aiWorker;
 let resumeAiAfterLimit = false;
 const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 
@@ -147,25 +148,37 @@ function placeStone(row, col) {
   return true;
 }
 
-function requestAiMove() {
-  state.thinking = true; updateStatus();
-  saveGame();
-  state.aiTimer = setTimeout(() => {
-    const move = chooseAiMove(state.board, state.difficulty, WHITE);
+function restartAiWorker() {
+  aiWorker?.terminate();
+  aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
+  aiWorker.addEventListener("message", ({ data }) => {
+    if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== WHITE) return;
     state.thinking = false;
-    if (move && state.running) placeStone(...move);
-  }, 350);
+    if (data.move) placeStone(...data.move);
+  });
+}
+
+function cancelAi() {
+  state.aiRequestId += 1;
+  state.thinking = false;
+  restartAiWorker();
+}
+
+function requestAiMove() {
+  state.thinking = true; updateStatus(); saveGame();
+  const requestId = ++state.aiRequestId;
+  aiWorker.postMessage({ requestId, board: state.board, difficulty: state.difficulty, player: WHITE });
 }
 
 function resetGame() {
-  clearTimeout(state.aiTimer); state.board = createBoard(); state.currentPlayer = BLACK; state.running = true; state.thinking = false; state.winner = null; state.winningLine = []; state.history = []; state.cursor = { row: 7, col: 7 };
+  cancelAi(); state.board = createBoard(); state.currentPlayer = BLACK; state.running = true; state.thinking = false; state.winner = null; state.winningLine = []; state.history = []; state.cursor = { row: 7, col: 7 };
   elements.modePanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden");
   drawBoard(); updateStatus(); elements.board.focus();
   saveGame();
 }
 
 function showModePanel() {
-  clearTimeout(state.aiTimer); state.running = false; state.thinking = false; elements.resultPanel.classList.add("hidden"); elements.modePanel.classList.remove("hidden"); updateStatus();
+  cancelAi(); state.running = false; state.thinking = false; elements.resultPanel.classList.add("hidden"); elements.modePanel.classList.remove("hidden"); updateStatus();
   saveGame();
 }
 
@@ -206,7 +219,7 @@ function restoreUi(value) {
 function lockGame() {
   saveGame();
   resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === WHITE;
-  clearTimeout(state.aiTimer); state.thinking = false; updateStatus();
+  cancelAi(); updateStatus();
 }
 
 function resumeGameAfterLimit() {
@@ -241,6 +254,7 @@ elements.board.addEventListener("focus", drawBoard); elements.board.addEventList
 elements.startButton.addEventListener("click", resetGame); elements.restartButton.addEventListener("click", resetGame); elements.restartControl.addEventListener("click", resetGame); elements.undoButton.addEventListener("click", undo); elements.modeButton.addEventListener("click", showModePanel); elements.resultModeButton.addEventListener("click", showModePanel);
 elements.soundButton.addEventListener("click", () => { state.soundOn = !state.soundOn; elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); saveGame(); });
 window.addEventListener("resize", drawBoard);
+restartAiWorker();
 const savedGame = loadGame();
 restoreUi(savedGame);
 window.addEventListener("pagehide", saveGame);

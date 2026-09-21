@@ -27,3 +27,11 @@ test("a stale game tab cannot overwrite a newer revision", () => {
   assert.equal(conflicts, 1);
   assert.deepEqual(first.load(), { score: 1 });
 });
+
+test("safe storage observes values removed by another tab", () => {
+  const storage = memoryStorage();
+  const store = createSafeJsonStore("state", storage);
+  store.write({ value: 7 });
+  storage.setItem("state", null);
+  assert.equal(store.read(), null);
+});

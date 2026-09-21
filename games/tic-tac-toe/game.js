@@ -1,6 +1,7 @@
 import { BOARD_SIZE, EMPTY, O, X, chooseAiMove, createBoard, getOutcome } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
+import { validateTicTacToeSave } from "./save-state.mjs";
 
 const SAVE_KEY = "lulu-tic-tac-toe-save-v1";
 const names = { [X]: "X", [O]: "O" };
@@ -11,15 +12,7 @@ const state = { mode: "pvp", difficulty: "medium", board: createBoard(), current
 let audioContext;
 let resumeAiAfterLimit = false;
 
-function validateSave(value) {
-  if (!value || value.version !== 1 || !["pvp", "ai"].includes(value.mode) || !["easy", "medium", "hard"].includes(value.difficulty)) return null;
-  if (!Array.isArray(value.board) || value.board.length !== BOARD_SIZE || value.board.some((row) => !Array.isArray(row) || row.length !== BOARD_SIZE || row.some((cell) => ![EMPTY, X, O].includes(cell)))) return null;
-  if (![X, O].includes(value.currentPlayer) || !Array.isArray(value.history) || value.history.some((move) => !move || !Number.isInteger(move.row) || !Number.isInteger(move.col) || ![X, O].includes(move.player) || move.row < 0 || move.row > 2 || move.col < 0 || move.col > 2)) return null;
-  if (![null, X, O].includes(value.winner) || !Array.isArray(value.winningLine) || value.winningLine.some((point) => !Array.isArray(point) || point.length !== 2 || !Number.isInteger(point[0]) || !Number.isInteger(point[1]) || point[0] < 0 || point[0] > 2 || point[1] < 0 || point[1] > 2) || !value.cursor || !Number.isInteger(value.cursor.row) || !Number.isInteger(value.cursor.col) || value.cursor.row < 0 || value.cursor.row > 2 || value.cursor.col < 0 || value.cursor.col > 2) return null;
-  return value;
-}
-
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateTicTacToeSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   return gameStore.save({ version: 1, mode: state.mode, difficulty: state.difficulty, board: state.board, currentPlayer: state.currentPlayer, running: state.running, winner: state.winner, winningLine: state.winningLine, history: state.history, soundOn: state.soundOn, cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"), resultOpen: !elements.resultPanel.classList.contains("hidden") });
@@ -49,12 +42,13 @@ function renderBoard() {
   state.board.forEach((line, row) => line.forEach((value, col) => {
     const cell = document.createElement("button");
     cell.type = "button";
+    cell.tabIndex = -1;
     cell.className = "cell " + (value === X ? "x" : value === O ? "o" : "") + (winning.has(row + "," + col) ? " winner" : "");
     cell.textContent = value === X ? "×" : value === O ? "○" : "";
     cell.setAttribute("role", "gridcell");
     cell.setAttribute("aria-label", value ? (row + 1) + "行" + (col + 1) + "列，" + names[value] : (row + 1) + "行" + (col + 1) + "列，空位");
     cell.disabled = !state.running || state.thinking || value !== EMPTY;
-    cell.addEventListener("click", () => { state.cursor = { row, col }; placeMark(row, col); elements.board.focus(); });
+    cell.addEventListener("click", () => { state.cursor = { row, col }; placeMark(row, col); if (state.running) elements.board.focus(); });
     elements.board.append(cell);
   }));
   elements.board.setAttribute("aria-activedescendant", "cell-" + state.cursor.row + "-" + state.cursor.col);
