@@ -13,7 +13,25 @@ import customer2Url from "../assets/characters/customer-2.png";
 import customer3Url from "../assets/characters/customer-3.png";
 import customer4Url from "../assets/characters/customer-4.png";
 
-const composite = (textureKey, url, panel) => ({ textureKey, url, panel, columns: 4, rows: 3, panelColumns: 2, panelRows: 2 });
+// The generated composite sheets use a 4-row grid for their top two characters
+// and a 3-row grid for their bottom two characters.  Keep the source-grid
+// dimensions explicit so animation frames and dialogue portraits share them.
+const composite = (textureKey, url, panel) => {
+  const isTopPanel = panel < 2;
+  return {
+    textureKey,
+    url,
+    panel,
+    columns: 4,
+    rows: isTopPanel ? 4 : 3,
+    panelColumns: 2,
+    panelRows: 2,
+    portraitColumns: 8,
+    portraitRows: 7,
+    portraitColumn: (panel % 2) * 4,
+    portraitRow: isTopPanel ? 0 : 4,
+  };
+};
 const individual = (textureKey, url) => ({ textureKey, url, columns: 4, rows: 4, panelColumns: 1, panelRows: 1 });
 
 export const CHARACTER_SHEETS = {
@@ -83,11 +101,13 @@ export function characterPortrait(characterId) {
   const panel = character.panel ?? 0;
   const panelX = panel % character.panelColumns;
   const panelY = Math.floor(panel / character.panelColumns);
-  const columns = character.columns * character.panelColumns;
-  const rows = character.rows * character.panelRows;
+  const columns = character.portraitColumns ?? character.columns * character.panelColumns;
+  const rows = character.portraitRows ?? character.rows * character.panelRows;
+  const column = character.portraitColumn ?? panelX * character.columns;
+  const row = character.portraitRow ?? panelY * character.rows;
   return {
     url: character.url,
     backgroundSize: `${columns * 100}% ${rows * 100}%`,
-    backgroundPosition: `${(panelX * character.columns) * 100 / Math.max(1, columns - 1)}% ${(panelY * character.rows) * 100 / Math.max(1, rows - 1)}%`,
+    backgroundPosition: `${column * 100 / Math.max(1, columns - 1)}% ${row * 100 / Math.max(1, rows - 1)}%`,
   };
 }
