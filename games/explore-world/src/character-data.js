@@ -1,10 +1,28 @@
 import playerUrl from "../assets/characters/player.png";
-import familyUrl from "../assets/characters/family.png";
-import schoolCoreUrl from "../assets/characters/school-core.png";
-import studentsAUrl from "../assets/characters/students-a.png";
-import studentsBUrl from "../assets/characters/students-b.png";
-import medicalStaffUrl from "../assets/characters/medical-staff.png";
-import patientsUrl from "../assets/characters/patients.png";
+import motherUrl from "../assets/characters/mother.png";
+import fatherUrl from "../assets/characters/father.png";
+import grandfatherUrl from "../assets/characters/grandfather.png";
+import grandmotherUrl from "../assets/characters/grandmother.png";
+import brotherUrl from "../assets/characters/brother.png";
+import dutyTeacherUrl from "../assets/characters/duty-teacher.png";
+import linTeacherUrl from "../assets/characters/lin-teacher.png";
+import student1Url from "../assets/characters/student-1.png";
+import student2Url from "../assets/characters/student-2.png";
+import student3Url from "../assets/characters/student-3.png";
+import student4Url from "../assets/characters/student-4.png";
+import student5Url from "../assets/characters/student-5.png";
+import student6Url from "../assets/characters/student-6.png";
+import student7Url from "../assets/characters/student-7.png";
+import student8Url from "../assets/characters/student-8.png";
+import student9Url from "../assets/characters/student-9.png";
+import student10Url from "../assets/characters/student-10.png";
+import guideNurseUrl from "../assets/characters/guide-nurse.png";
+import chenNurseUrl from "../assets/characters/chen-nurse.png";
+import wangDoctorUrl from "../assets/characters/wang-doctor.png";
+import patient1Url from "../assets/characters/patient-1.png";
+import patient2Url from "../assets/characters/patient-2.png";
+import patient3Url from "../assets/characters/patient-3.png";
+import patient4Url from "../assets/characters/patient-4.png";
 import cashierUrl from "../assets/characters/cashier.png";
 import stockClerkUrl from "../assets/characters/stock-clerk.png";
 import floorClerkUrl from "../assets/characters/floor-clerk.png";
@@ -13,35 +31,16 @@ import customer2Url from "../assets/characters/customer-2.png";
 import customer3Url from "../assets/characters/customer-3.png";
 import customer4Url from "../assets/characters/customer-4.png";
 
-// The generated composite sheets use a 4-row grid for their top two characters
-// and a 3-row grid for their bottom two characters.  Keep the source-grid
-// dimensions explicit so animation frames and dialogue portraits share them.
-const composite = (textureKey, url, panel) => {
-  const isTopPanel = panel < 2;
-  return {
-    textureKey,
-    url,
-    panel,
-    columns: 4,
-    rows: isTopPanel ? 4 : 3,
-    panelColumns: 2,
-    panelRows: 2,
-    portraitColumns: 8,
-    portraitRows: 7,
-    portraitColumn: (panel % 2) * 4,
-    portraitRow: isTopPanel ? 0 : 4,
-  };
-};
-const individual = (textureKey, url) => ({ textureKey, url, columns: 4, rows: 4, panelColumns: 1, panelRows: 1 });
+const individual = (textureKey, url, rows = 4) => ({ textureKey, url, columns: 4, rows, panelColumns: 1, panelRows: 1 });
 
 export const CHARACTER_SHEETS = {
   "character-player": playerUrl,
-  "character-family": familyUrl,
-  "character-school-core": schoolCoreUrl,
-  "character-students-a": studentsAUrl,
-  "character-students-b": studentsBUrl,
-  "character-medical-staff": medicalStaffUrl,
-  "character-patients": patientsUrl,
+  "character-mother": motherUrl, "character-father": fatherUrl, "character-grandfather": grandfatherUrl, "character-grandmother": grandmotherUrl,
+  "character-brother": brotherUrl, "character-duty-teacher": dutyTeacherUrl, "character-lin-teacher": linTeacherUrl,
+  "character-student-1": student1Url, "character-student-2": student2Url, "character-student-3": student3Url, "character-student-4": student4Url, "character-student-5": student5Url,
+  "character-student-6": student6Url, "character-student-7": student7Url, "character-student-8": student8Url, "character-student-9": student9Url, "character-student-10": student10Url,
+  "character-guide-nurse": guideNurseUrl, "character-chen-nurse": chenNurseUrl, "character-wang-doctor": wangDoctorUrl,
+  "character-patient-1": patient1Url, "character-patient-2": patient2Url, "character-patient-3": patient3Url, "character-patient-4": patient4Url,
   "character-cashier": cashierUrl,
   "character-stock-clerk": stockClerkUrl,
   "character-floor-clerk": floorClerkUrl,
@@ -53,30 +52,18 @@ export const CHARACTER_SHEETS = {
 
 export const CHARACTERS = {
   player: individual("character-player", playerUrl),
-  mother: composite("character-family", familyUrl, 0),
-  father: composite("character-family", familyUrl, 1),
-  grandfather: composite("character-family", familyUrl, 2),
-  grandmother: composite("character-family", familyUrl, 3),
-  brother: composite("character-school-core", schoolCoreUrl, 0),
-  "duty-teacher": composite("character-school-core", schoolCoreUrl, 1),
-  "lin-teacher": composite("character-school-core", schoolCoreUrl, 2),
-  "student-1": composite("character-school-core", schoolCoreUrl, 3),
-  "student-2": composite("character-students-a", studentsAUrl, 0),
-  "student-3": composite("character-students-a", studentsAUrl, 1),
-  "student-4": composite("character-students-a", studentsAUrl, 2),
-  "student-5": composite("character-students-a", studentsAUrl, 3),
-  "student-6": composite("character-students-b", studentsBUrl, 0),
-  "student-7": composite("character-students-b", studentsBUrl, 1),
-  "student-8": composite("character-students-b", studentsBUrl, 2),
-  "student-9": composite("character-students-b", studentsBUrl, 3),
-  "student-10": composite("character-medical-staff", medicalStaffUrl, 0),
-  "guide-nurse": composite("character-medical-staff", medicalStaffUrl, 1),
-  "chen-nurse": composite("character-medical-staff", medicalStaffUrl, 2),
-  "wang-doctor": composite("character-medical-staff", medicalStaffUrl, 3),
-  "patient-1": composite("character-patients", patientsUrl, 0),
-  "patient-2": composite("character-patients", patientsUrl, 1),
-  "patient-3": composite("character-patients", patientsUrl, 2),
-  "patient-4": composite("character-patients", patientsUrl, 3),
+  mother: individual("character-mother", motherUrl), father: individual("character-father", fatherUrl),
+  grandfather: individual("character-grandfather", grandfatherUrl, 3), grandmother: individual("character-grandmother", grandmotherUrl, 3),
+  brother: individual("character-brother", brotherUrl), "duty-teacher": individual("character-duty-teacher", dutyTeacherUrl),
+  "lin-teacher": individual("character-lin-teacher", linTeacherUrl, 3), "student-1": individual("character-student-1", student1Url, 3),
+  "student-2": individual("character-student-2", student2Url), "student-3": individual("character-student-3", student3Url),
+  "student-4": individual("character-student-4", student4Url, 3), "student-5": individual("character-student-5", student5Url, 3),
+  "student-6": individual("character-student-6", student6Url), "student-7": individual("character-student-7", student7Url),
+  "student-8": individual("character-student-8", student8Url, 3), "student-9": individual("character-student-9", student9Url, 3),
+  "student-10": individual("character-student-10", student10Url), "guide-nurse": individual("character-guide-nurse", guideNurseUrl),
+  "chen-nurse": individual("character-chen-nurse", chenNurseUrl, 3), "wang-doctor": individual("character-wang-doctor", wangDoctorUrl, 3),
+  "patient-1": individual("character-patient-1", patient1Url), "patient-2": individual("character-patient-2", patient2Url),
+  "patient-3": individual("character-patient-3", patient3Url, 3), "patient-4": individual("character-patient-4", patient4Url, 3),
   cashier: individual("character-cashier", cashierUrl),
   "stock-clerk": individual("character-stock-clerk", stockClerkUrl),
   "floor-clerk": individual("character-floor-clerk", floorClerkUrl),
