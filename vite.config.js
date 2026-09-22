@@ -11,6 +11,7 @@ export default defineConfig({
         resolve(import.meta.dirname, "games/gomoku/index.html"),
         resolve(import.meta.dirname, "games/go/index.html"),
         resolve(import.meta.dirname, "games/tic-tac-toe/index.html"),
+        resolve(import.meta.dirname, "games/chess/index.html"),
         resolve(import.meta.dirname, "games/explore-world/index.html"),
       ],
     },
