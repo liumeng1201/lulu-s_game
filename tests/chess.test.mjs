@@ -1,10 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BLACK, EMPTY, WHITE, applyMove, chooseAiMove, createBoard, generateLegalMoves, getGameStatus, initialPosition, isInCheck, isInsufficientMaterial, movesEqual } from "../games/chess/engine.mjs";
+import { BLACK, EMPTY, WHITE, applyMove, chooseAiMove, createBoard, generateLegalMoves, getAutomaticDrawReason, getGameStatus, initialPosition, isInCheck, isInsufficientMaterial, movesEqual, otherColor, positionKey, typeOf } from "../games/chess/engine.mjs";
 import { validateChessSave } from "../games/chess/save-state.mjs";
 
 const emptyBoard = () => Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
 const findMove = (board, position, color, from, to) => generateLegalMoves(board, position, color).find((move) => move.from.row === from[0] && move.from.col === from[1] && move.to.row === to[0] && move.to.col === to[1]);
+function replayMoves(moves) {
+  let board = createBoard(); let position = initialPosition(); let currentPlayer = WHITE; let halfmoveClock = 0; const positionHistory = [positionKey(board, position, currentPlayer)];
+  for (const move of moves) { const result = applyMove(board, position, move); halfmoveClock = typeOf(result.piece) === "P" || result.captured ? 0 : halfmoveClock + 1; ({ board, position } = result); currentPlayer = otherColor(currentPlayer); positionHistory.push(positionKey(board, position, currentPlayer)); }
+  return { board, position, currentPlayer, halfmoveClock, positionHistory };
+}
 
 test("creates the standard chess opening position", () => {
   const board = createBoard();
@@ -65,6 +70,14 @@ test("detects checkmate, stalemate, and insufficient material", () => {
   const kings = emptyBoard(); kings[0][0] = "bK"; kings[7][7] = "wK"; assert.equal(isInsufficientMaterial(kings), true);
 });
 
+test("recognizes threefold repetition and the fifty-move rule", () => {
+  let board = createBoard(); let position = initialPosition(); let player = WHITE; const history = [];
+  for (let cycle = 0; cycle < 2; cycle += 1) for (const [from, to] of [[[7, 6], [5, 5]], [[0, 6], [2, 5]], [[5, 5], [7, 6]], [[2, 5], [0, 6]]]) { const move = findMove(board, position, player, from, to); history.push(move); ({ board, position } = applyMove(board, position, move)); player = otherColor(player); }
+  const replayed = replayMoves(history);
+  assert.equal(getAutomaticDrawReason(replayed.positionHistory, replayed.halfmoveClock), "repetition");
+  assert.equal(getAutomaticDrawReason(["first", "second"], 100), "fifty-move");
+});
+
 test("AI always returns a legal move", () => {
   const board = createBoard(); const position = initialPosition();
   const opening = findMove(board, position, WHITE, [6, 4], [4, 4]); const afterOpening = applyMove(board, position, opening);
@@ -79,4 +92,15 @@ test("validates a saved legal history and rejects an illegal one", () => {
   const valid = { version: 1, mode: "pvp", difficulty: "medium", board: applied.board, position: applied.position, currentPlayer: BLACK, history: [first], running: true, winner: null, reason: null, soundOn: true, cursor: { row: 4, col: 4 }, modeOpen: false, resultOpen: false };
   assert.ok(validateChessSave(valid));
   assert.equal(validateChessSave({ ...valid, history: [{ from: { row: 4, col: 4 }, to: { row: 3, col: 4 } }] }), null);
+});
+
+test("persists automatic draws and a pending draw offer", () => {
+  let board = createBoard(); let position = initialPosition(); let player = WHITE; const history = [];
+  for (let cycle = 0; cycle < 2; cycle += 1) for (const [from, to] of [[[7, 6], [5, 5]], [[0, 6], [2, 5]], [[5, 5], [7, 6]], [[2, 5], [0, 6]]]) { const move = findMove(board, position, player, from, to); history.push(move); ({ board, position } = applyMove(board, position, move)); player = otherColor(player); }
+  const replayed = replayMoves(history);
+  const automaticDraw = { version: 2, mode: "pvp", difficulty: "medium", ...replayed, history, running: false, winner: null, reason: "repetition", soundOn: true, cursor: { row: 0, col: 6 }, modeOpen: false, resultOpen: true, drawOfferBy: null };
+  assert.equal(validateChessSave(automaticDraw).reason, "repetition");
+  const opening = findMove(createBoard(), initialPosition(), WHITE, [6, 4], [4, 4]); const afterOpening = replayMoves([opening]);
+  const offer = { version: 2, mode: "pvp", difficulty: "medium", ...afterOpening, history: [opening], running: true, winner: null, reason: null, soundOn: true, cursor: { row: 4, col: 4 }, modeOpen: false, resultOpen: false, drawOfferBy: WHITE };
+  assert.equal(validateChessSave(offer).drawOfferBy, WHITE);
 });
