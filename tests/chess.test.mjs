@@ -68,6 +68,8 @@ test("detects checkmate, stalemate, and insufficient material", () => {
   const stalemate = emptyBoard(); stalemate[0][7] = "bK"; stalemate[1][5] = "wQ"; stalemate[2][5] = "wK";
   assert.equal(getGameStatus(stalemate, initialPosition(), BLACK).reason, "stalemate");
   const kings = emptyBoard(); kings[0][0] = "bK"; kings[7][7] = "wK"; assert.equal(isInsufficientMaterial(kings), true);
+  const twoKnights = emptyBoard(); twoKnights[0][0] = "bK"; twoKnights[7][7] = "wK"; twoKnights[5][5] = "wN"; twoKnights[5][6] = "wN";
+  assert.equal(isInsufficientMaterial(twoKnights), true);
 });
 
 test("recognizes threefold repetition and the fifty-move rule", () => {
@@ -92,6 +94,7 @@ test("validates a saved legal history and rejects an illegal one", () => {
   const valid = { version: 1, mode: "pvp", difficulty: "medium", board: applied.board, position: applied.position, currentPlayer: BLACK, history: [first], running: true, winner: null, reason: null, soundOn: true, cursor: { row: 4, col: 4 }, modeOpen: false, resultOpen: false };
   assert.ok(validateChessSave(valid));
   assert.equal(validateChessSave({ ...valid, history: [{ from: { row: 4, col: 4 }, to: { row: 3, col: 4 } }] }), null);
+  assert.equal(validateChessSave({ ...valid, history: [{ ...first, promotion: "Q" }] }), null);
 });
 
 test("persists automatic draws and a pending draw offer", () => {
