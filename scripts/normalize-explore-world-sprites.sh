@@ -159,8 +159,8 @@ for entry in \
   'brother:4:0:0' 'duty-teacher:4:0:0' 'lin-teacher:3:60:0' 'student-1:3:60:0' \
   'student-2:3:0:585' 'student-3:3:0:585' 'student-4:3:0:0' 'student-5:3:0:0' \
   'student-6:3:0:0' 'student-7:3:0:0' 'student-8:3:0:0' 'student-9:3:0:0' \
-  'student-10:3:0:0' 'guide-nurse:4:0:0' 'chen-nurse:3:0:0' 'wang-doctor:3:0:0' \
-  'patient-1:4:0:0' 'patient-2:4:0:0' 'patient-3:3:0:0' 'patient-4:3:0:0' \
+  'student-10:3:0:0' 'guide-nurse:3:0:0' 'chen-nurse:3:0:0' 'wang-doctor:3:0:0' \
+  'patient-1:3:0:0' 'patient-2:3:0:0' 'patient-3:3:0:0' 'patient-4:3:0:0' \
   'player:4:0:0' 'cashier:4:0:0' 'stock-clerk:4:0:0' 'floor-clerk:4:0:0' \
   'customer-1:4:0:0' 'customer-2:4:0:0' 'customer-3:4:0:0' 'customer-4:4:0:0'; do
   name=${entry%%:*}
