@@ -15,8 +15,13 @@ find_cut() {
   height=$2
   rows=$3
   boundary=$4
+  span_override=${5:-0}
   target=$((boundary * height / rows))
-  span=$((height / (rows * 3)))
+  if [ "$span_override" -gt 0 ]; then
+    span=$span_override
+  else
+    span=$((height / (rows * 3)))
+  fi
   awk -v target="$target" -v span="$span" '
     $1 >= target - span && $1 <= target + span {
       if (!found || $2 < best) { found = 1; best = $2; line = $1 }
@@ -31,6 +36,7 @@ normalize_sheet() {
   source_rows=$3
   crop_y=$4
   crop_height=$5
+  cut_span=$6
   width=$(identify -format '%w' "$source")
   height=$(identify -format '%h' "$source")
   if [ "$crop_y" -gt 0 ] || [ "$crop_height" -gt 0 ]; then
@@ -50,7 +56,7 @@ normalize_sheet() {
   cuts="0"
   boundary=1
   while [ "$boundary" -lt "$source_rows" ]; do
-    cuts="$cuts $(find_cut "$y_density" "$height" "$source_rows" "$boundary")"
+    cuts="$cuts $(find_cut "$y_density" "$height" "$source_rows" "$boundary" "$cut_span")"
     boundary=$((boundary + 1))
   done
   cuts="$cuts $height"
@@ -151,12 +157,14 @@ normalize_sheet() {
   convert $rows_out -append "$output"
 }
 
-# Entries use name:source_rows:crop_y:crop_height. The school source sheets
-# contain three poses except for the four-row duty-teacher sheet; the explicit
-# crop offsets remove overlap from the neighboring panels in the old composite.
+# Entries use name:source_rows:crop_y:crop_height:cut_span. The final field is
+# optional and widens the row-boundary search for sheets with uneven spacing.
+# The school source sheets contain three poses except for the four-row
+# duty-teacher sheet; the explicit crop offsets remove overlap from neighboring
+# panels in the old composite.
 for entry in \
   'mother:4:0:0' 'father:4:0:0' 'grandfather:3:0:0' 'grandmother:3:0:0' \
-  'brother:4:0:0' 'duty-teacher:4:0:0' 'lin-teacher:3:60:0' 'student-1:3:60:0' \
+  'brother:4:0:0:90' 'duty-teacher:4:0:0:90' 'lin-teacher:3:60:0' 'student-1:3:60:0' \
   'student-2:3:0:585' 'student-3:3:0:585' 'student-4:3:0:0' 'student-5:3:0:0' \
   'student-6:3:0:0' 'student-7:3:0:0' 'student-8:3:0:0' 'student-9:3:0:0' \
   'student-10:3:0:0' 'guide-nurse:3:0:0' 'chen-nurse:3:0:0' 'wang-doctor:3:0:0' \
@@ -171,9 +179,14 @@ for entry in \
   rows=${metadata%%:*}
   metadata=${metadata#*:}
   crop_y=${metadata%%:*}
-  crop_height=${metadata#*:}
+  metadata=${metadata#*:}
+  crop_height=${metadata%%:*}
+  case "$metadata" in
+    *:*) cut_span=${metadata#*:} ;;
+    *) cut_span=0 ;;
+  esac
   source="$source_dir/$name.png"
   output="$tmp_dir/$name-normalized.png"
-  normalize_sheet "$source" "$output" "$rows" "$crop_y" "$crop_height"
+  normalize_sheet "$source" "$output" "$rows" "$crop_y" "$crop_height" "$cut_span"
   mv "$output" "$asset_dir/$name.png"
 done
