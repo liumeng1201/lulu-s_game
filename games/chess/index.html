@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="和朋友或电脑来一局轻松有趣的国际象棋。" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>国际象棋｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-piece" aria-hidden="true">♞</span><span>国际象棋</span></div>
+        <button id="soundButton" class="icon-button" type="button" aria-label="关闭声音" title="声音开关">🔊</button>
+      </header>
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="scoreboard">
+          <div class="player-card" id="blackCard"><span class="chess-mark black">♚</span><span><small>黑方</small><strong id="blackName">玩家二</strong></span></div>
+          <div class="turn-status"><span id="modeBadge">人人对战</span><strong id="turnText" aria-live="polite">准备开始</strong></div>
+          <div class="player-card active" id="whiteCard"><span><small>白方 · 先手</small><strong id="whiteName">玩家一</strong></span><span class="chess-mark white">♔</span></div>
+        </div>
+        <div class="board-stage">
+          <div id="board" class="board" role="grid" tabindex="0" aria-label="国际象棋棋盘。使用方向键移动，按回车或空格选择棋子或落子。"></div>
+          <div id="modePanel" class="overlay-panel">
+            <div class="mascot" aria-hidden="true">♞</div><p class="eyebrow">八格大棋局</p><h1 id="gameTitle">选择对战方式</h1>
+            <div class="choice-row" aria-label="游戏模式"><button class="choice-button selected" data-mode="pvp" type="button" aria-pressed="true">👥 人人对战</button><button class="choice-button" data-mode="ai" type="button" aria-pressed="false">🤖 人机对战</button></div>
+            <div id="difficultyGroup" class="difficulty hidden" aria-label="电脑难度"><span>选择难度</span><div class="segmented"><button data-difficulty="easy" type="button" aria-pressed="false">简单</button><button class="selected" data-difficulty="medium" type="button" aria-pressed="true">中等</button><button data-difficulty="hard" type="button" aria-pressed="false">困难</button></div></div>
+            <button id="startButton" class="primary-button" type="button"><span aria-hidden="true">▶</span> 开始游戏</button><div class="mini-tip">将军、易位、吃过路兵和兵升变都可以玩</div>
+          </div>
+          <div id="promotionPanel" class="promotion-panel hidden" aria-live="polite"><p>兵升变为：</p><div><button data-promotion="Q" type="button" aria-label="升变为后">♕</button><button data-promotion="R" type="button" aria-label="升变为车">♖</button><button data-promotion="B" type="button" aria-label="升变为象">♗</button><button data-promotion="N" type="button" aria-label="升变为马">♘</button></div></div>
+          <div id="resultPanel" class="overlay-panel hidden" aria-live="polite"><div id="resultEmoji" class="result-emoji" aria-hidden="true">🎉</div><p class="eyebrow">本局结果</p><h2 id="resultTitle">白方获胜！</h2><p id="resultMessage">漂亮的将杀！</p><div class="result-actions"><button id="restartButton" class="primary-button" type="button">再玩一局</button><button id="resultModeButton" class="secondary-button" type="button">更换模式</button></div></div>
+        </div>
+        <div class="controls" aria-label="对局操作"><button id="undoButton" class="control-button" type="button" disabled>↶ <span>悔棋</span></button><p class="control-tip">点击棋子，再点击目标格<br /><span>方向键 + 回车也可操作</span></p><button id="restartControl" class="control-button" type="button">↻ <span>重开</span></button><button id="modeButton" class="control-button" type="button">⚙ <span>模式</span></button></div>
+      </section>
+      <p class="footer-tip">运筹帷幄，走好每一步 ♟</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
