@@ -86,7 +86,7 @@ function handleSquare(row, col) {
 
 function restartAiWorker() {
   aiWorker?.terminate(); aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
-  aiWorker.addEventListener("message", ({ data }) => { if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== BLACK) return; state.thinking = false; if (data.move) commitMove(data.move); });
+  aiWorker.addEventListener("message", ({ data }) => { if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== BLACK) return; state.thinking = false; if (data.move) { commitMove(data.move); return; } const status = gameOutcome(); if (status.finished) finishGame(status); else { renderBoard(); updateStatus(); saveGame(); } });
 }
 function cancelAi() { state.aiRequestId += 1; state.thinking = false; restartAiWorker(); }
 function requestAiMove() { state.thinking = true; updateStatus(); renderBoard(); saveGame(); const requestId = ++state.aiRequestId; aiWorker.postMessage({ requestId, board: state.board, position: state.position, difficulty: state.difficulty, color: BLACK }); }

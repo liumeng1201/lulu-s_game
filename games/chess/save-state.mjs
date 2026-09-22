@@ -11,7 +11,7 @@ function replay(history) {
   for (const storedMove of history) {
     const legal = generateLegalMoves(board, position, currentPlayer);
     const move = legal.find((candidate) => movesEqual(candidate, storedMove));
-    if (!move) return null;
+    if (!move || (storedMove.promotion && !move.promotion)) return null;
     const result = applyMove(board, position, { ...move, promotion: storedMove.promotion ?? move.promotion });
     halfmoveClock = typeOf(result.piece) === "P" || result.captured ? 0 : halfmoveClock + 1;
     ({ board, position } = result); currentPlayer = otherColor(currentPlayer);

@@ -162,6 +162,8 @@ export function isInsufficientMaterial(board) {
   board.forEach((line, row) => line.forEach((piece, col) => { if (piece && typeOf(piece) !== "K") pieces.push({ piece, row, col }); }));
   if (!pieces.length) return true;
   if (pieces.length === 1 && ["B", "N"].includes(typeOf(pieces[0].piece))) return true;
+  // Two knights cannot checkmate a lone king, even with cooperative play.
+  if (pieces.length === 2 && pieces.every(({ piece }) => typeOf(piece) === "N" && colorOf(piece) === colorOf(pieces[0].piece))) return true;
   return pieces.every(({ piece }) => typeOf(piece) === "B") && pieces.every(({ row, col }) => (row + col) % 2 === (pieces[0].row + pieces[0].col) % 2);
 }
 
