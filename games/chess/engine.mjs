@@ -128,7 +128,7 @@ export function applyMove(board, position, selectedMove) {
   if (captured === "wR") { if (to.row === 7 && to.col === 0) nextPosition.castling = removeCastling(nextPosition.castling, ["Q"]); if (to.row === 7 && to.col === 7) nextPosition.castling = removeCastling(nextPosition.castling, ["K"]); }
   if (captured === "bR") { if (to.row === 0 && to.col === 0) nextPosition.castling = removeCastling(nextPosition.castling, ["q"]); if (to.row === 0 && to.col === 7) nextPosition.castling = removeCastling(nextPosition.castling, ["k"]); }
   if (type === "P" && Math.abs(to.row - from.row) === 2) nextPosition.enPassant = { row: (from.row + to.row) / 2, col: from.col };
-  return { board: nextBoard, position: nextPosition, captured };
+  return { board: nextBoard, position: nextPosition, captured, piece };
 }
 
 export function generateLegalMoves(board, position, color) {
@@ -141,6 +141,20 @@ export function generateLegalMoves(board, position, color) {
     }
   }
   return legal;
+}
+
+// A repetition position includes the side to move, castling rights and only an
+// en-passant target that can actually be used by the player to move.
+export function positionKey(board, position, color) {
+  const usableEnPassant = position.enPassant && generateLegalMoves(board, position, color).some((candidate) => candidate.enPassant);
+  const enPassant = usableEnPassant ? `${position.enPassant.row},${position.enPassant.col}` : "-";
+  return `${board.map((row) => row.map((piece) => piece ?? "--").join("")).join("/")}|${color}|${position.castling || "-"}|${enPassant}`;
+}
+
+export function getAutomaticDrawReason(positionHistory, halfmoveClock) {
+  const currentKey = positionHistory.at(-1);
+  if (currentKey && positionHistory.filter((key) => key === currentKey).length >= 3) return "repetition";
+  return halfmoveClock >= 100 ? "fifty-move" : null;
 }
 
 export function isInsufficientMaterial(board) {
