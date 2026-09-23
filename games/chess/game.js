@@ -12,7 +12,8 @@ const elements = Object.fromEntries(ids.map((id) => [id, document.querySelector(
 const startingBoard = createBoard(); const startingPosition = initialPosition();
 const state = { mode: "pvp", difficulty: "medium", board: startingBoard, position: startingPosition, currentPlayer: WHITE, history: [], positionHistory: [positionKey(startingBoard, startingPosition, WHITE)], halfmoveClock: 0, drawOfferBy: null, running: false, thinking: false, winner: null, reason: null, selected: null, cursor: { row: 7, col: 0 }, soundOn: true, aiRequestId: 0 };
 let audioContext; let aiWorker; let pendingPromotion = null; let resumeAiAfterLimit = false;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateChessSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+let aiWorkerFailed = false;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateChessSave, storage: localStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   gameStore.save({ version: 2, mode: state.mode, difficulty: state.difficulty, board: state.board, position: state.position, currentPlayer: state.currentPlayer, history: state.history, positionHistory: state.positionHistory, halfmoveClock: state.halfmoveClock, drawOfferBy: state.drawOfferBy, running: state.running, winner: state.winner, reason: state.reason, soundOn: state.soundOn, cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"), resultOpen: !elements.resultPanel.classList.contains("hidden") });
@@ -73,7 +74,7 @@ function commitMove(candidate, promotion = candidate.promotion) {
 }
 
 function handleSquare(row, col) {
-  if (!state.running || state.thinking || pendingPromotion) return;
+  if (!state.running || state.thinking || pendingPromotion || (state.mode === "ai" && state.currentPlayer === BLACK)) return;
   const piece = state.board[row][col]; const legal = generateLegalMoves(state.board, state.position, state.currentPlayer);
   const selectedMove = state.selected && legal.find((move) => move.from.row === state.selected.row && move.from.col === state.selected.col && move.to.row === row && move.to.col === col);
   if (selectedMove) {
@@ -85,11 +86,31 @@ function handleSquare(row, col) {
 }
 
 function restartAiWorker() {
-  aiWorker?.terminate(); aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
+  aiWorker?.terminate(); aiWorkerFailed = false; aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
   aiWorker.addEventListener("message", ({ data }) => { if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== BLACK) return; state.thinking = false; if (data.move) { commitMove(data.move); return; } const status = gameOutcome(); if (status.finished) finishGame(status); else { renderBoard(); updateStatus(); saveGame(); } });
+  const failed = (event) => { event.preventDefault?.(); aiWorkerFailed = true; if (state.thinking) runAiFallback(); };
+  aiWorker.addEventListener("error", failed);
+  aiWorker.addEventListener("messageerror", failed);
+}
+function runAiFallback() {
+  if (!state.running || state.mode !== "ai" || state.currentPlayer !== BLACK) return;
+  state.thinking = false;
+  try {
+    const move = chooseAiMove(state.board, state.position, "easy", BLACK);
+    if (move) { commitMove(move); return; }
+    const status = gameOutcome();
+    if (status.finished) finishGame(status);
+    else { updateStatus(); saveGame(); }
+  } catch {
+    state.mode = "pvp"; updateStatus(); elements.turnText.textContent = "电脑暂时不可用，已切换人人对战"; renderBoard(); saveGame();
+  }
 }
 function cancelAi() { state.aiRequestId += 1; state.thinking = false; restartAiWorker(); }
-function requestAiMove() { state.thinking = true; updateStatus(); renderBoard(); saveGame(); const requestId = ++state.aiRequestId; aiWorker.postMessage({ requestId, board: state.board, position: state.position, difficulty: state.difficulty, color: BLACK }); }
+function requestAiMove() {
+  state.thinking = true; updateStatus(); renderBoard(); saveGame();
+  if (aiWorkerFailed) { runAiFallback(); return; }
+  const requestId = ++state.aiRequestId; aiWorker.postMessage({ requestId, board: state.board, position: state.position, difficulty: state.difficulty, color: BLACK });
+}
 
 function resetGame() { cancelAi(); const board = createBoard(); const position = initialPosition(); Object.assign(state, { board, position, currentPlayer: WHITE, history: [], positionHistory: [positionKey(board, position, WHITE)], halfmoveClock: 0, drawOfferBy: null, running: true, thinking: false, winner: null, reason: null, selected: null, cursor: { row: 7, col: 0 } }); pendingPromotion = null; elements.promotionPanel.classList.add("hidden"); elements.modePanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden"); renderBoard(); updateStatus(); elements.board.focus(); saveGame(); }
 function showModePanel() { cancelAi(); state.running = false; state.selected = null; state.drawOfferBy = null; pendingPromotion = null; elements.promotionPanel.classList.add("hidden"); elements.resultPanel.classList.add("hidden"); elements.modePanel.classList.remove("hidden"); renderBoard(); updateStatus(); saveGame(); }

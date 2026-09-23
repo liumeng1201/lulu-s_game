@@ -21,7 +21,7 @@ const FLOOR_START_Y = 210;
 const BOTTOM_FOOT_MARGIN = 24;
 const INTERACTION_DISTANCE = 120;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, onConflict: showSaveConflict });
 let soundOn = true;
 let activeScene;
 let audioContext;

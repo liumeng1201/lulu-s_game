@@ -46,7 +46,7 @@
 .play-limit-home { background: #eee7fa; color: #604493; }
 .play-limit-continue[hidden] { display: none; }
 
-.save-conflict-notice {
+.save-conflict-notice, .save-storage-notice {
   position: fixed;
   z-index: 9000;
   right: 16px;

@@ -75,6 +75,11 @@ test("AI passes instead of filling its own final eyes", () => {
   assert.equal(chooseAiMove(board, "hard", WHITE), null);
 });
 
+test("AI passes when the opponent has already passed", () => {
+  const board = createBoard(9);
+  assert.equal(chooseAiMove(board, "easy", WHITE, null, () => 0, { opponentPassed: true }), null);
+});
+
 test("AI returns legal moves for every size and difficulty", () => {
   for (const size of [9, 13, 19]) {
     const board = createBoard(size); board[Math.floor(size / 2)][Math.floor(size / 2)] = BLACK;

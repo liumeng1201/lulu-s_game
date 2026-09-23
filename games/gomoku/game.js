@@ -1,4 +1,4 @@
-import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, createBoard, isBoardFull } from "./engine.mjs";
+import { BLACK, BOARD_SIZE, EMPTY, WHITE, checkWin, chooseAiMove, createBoard, isBoardFull } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
 import { validateGomokuSave } from "./save-state.mjs";
@@ -13,7 +13,8 @@ const state = { mode: "pvp", difficulty: "medium", board: createBoard(), current
 let audioContext;
 let aiWorker;
 let resumeAiAfterLimit = false;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+let aiWorkerFailed = false;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, storage: localStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -133,8 +134,8 @@ function finishGame(winner, line = []) {
   saveGame();
 }
 
-function placeStone(row, col) {
-  if (!state.running || state.thinking || state.board[row]?.[col] !== EMPTY) return false;
+function placeStone(row, col, automated = false) {
+  if (!state.running || state.thinking || state.board[row]?.[col] !== EMPTY || (state.mode === "ai" && state.currentPlayer === WHITE && !automated)) return false;
   const player = state.currentPlayer;
   state.board[row][col] = player; state.history.push({ row, col, player });
   state.cursor = { row, col }; playTone(player === BLACK ? 280 : 390, .1, "triangle");
@@ -150,12 +151,28 @@ function placeStone(row, col) {
 
 function restartAiWorker() {
   aiWorker?.terminate();
+  aiWorkerFailed = false;
   aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
   aiWorker.addEventListener("message", ({ data }) => {
     if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== WHITE) return;
     state.thinking = false;
-    if (data.move) placeStone(...data.move);
+    if (data.move) placeStone(...data.move, true);
   });
+  const failed = (event) => { event.preventDefault?.(); aiWorkerFailed = true; if (state.thinking) runAiFallback(); };
+  aiWorker.addEventListener("error", failed);
+  aiWorker.addEventListener("messageerror", failed);
+}
+
+function runAiFallback() {
+  if (!state.running || state.mode !== "ai" || state.currentPlayer !== WHITE) return;
+  state.thinking = false;
+  try {
+    const move = chooseAiMove(state.board, "easy", WHITE);
+    if (move) { placeStone(...move, true); return; }
+    updateStatus();
+  } catch {
+    state.mode = "pvp"; updateStatus(); elements.turnText.textContent = "电脑暂时不可用，已切换人人对战"; saveGame();
+  }
 }
 
 function cancelAi() {
@@ -166,6 +183,7 @@ function cancelAi() {
 
 function requestAiMove() {
   state.thinking = true; updateStatus(); saveGame();
+  if (aiWorkerFailed) { runAiFallback(); return; }
   const requestId = ++state.aiRequestId;
   aiWorker.postMessage({ requestId, board: state.board, difficulty: state.difficulty, player: WHITE });
 }

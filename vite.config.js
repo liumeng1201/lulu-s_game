@@ -14,6 +14,11 @@ export default defineConfig({
         resolve(import.meta.dirname, "games/chess/index.html"),
         resolve(import.meta.dirname, "games/explore-world/index.html"),
       ],
+      output: {
+        manualChunks(id) {
+          if (id.includes("/node_modules/phaser/")) return "phaser-vendor";
+        },
+      },
     },
   },
 });

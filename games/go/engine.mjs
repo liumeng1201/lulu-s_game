@@ -175,6 +175,7 @@ export function isOwnEye(board, row, col, player) {
 }
 
 export function chooseAiMove(board, difficulty = "medium", player = WHITE, previousBoardKey = null, random = Math.random, options = {}) {
+  if (options.opponentPassed) return null;
   const moves = getLegalMoves(board, player, previousBoardKey);
   if (!moves.length) return null;
   const usefulMoves = moves.filter(([row, col]) => {

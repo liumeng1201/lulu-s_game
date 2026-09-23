@@ -55,7 +55,7 @@ const state = {
 let audioContext;
 let encouragementTimer;
 let pausedBeforePlayLimit = null;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateCatchStarsSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateCatchStarsSave, storage: localStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {

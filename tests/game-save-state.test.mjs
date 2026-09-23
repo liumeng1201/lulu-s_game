@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createBoard as createGomokuBoard, BLACK as GOMOKU_BLACK } from "../games/gomoku/engine.mjs";
 import { validateGomokuSave } from "../games/gomoku/save-state.mjs";
-import { createBoard as createGoBoard, BLACK, WHITE } from "../games/go/engine.mjs";
+import { createBoard as createGoBoard, BLACK, WHITE, playMove } from "../games/go/engine.mjs";
 import { validateGoSave } from "../games/go/save-state.mjs";
 import { validateCatchStarsSave } from "../games/catch-stars/save-state.js";
 import { createBoard as createTicTacToeBoard, X } from "../games/tic-tac-toe/engine.mjs";
@@ -30,6 +30,22 @@ test("go validates snapshots and stored dead-stone coordinates", () => {
   assert.ok(validateGoSave(valid));
   assert.equal(validateGoSave({ ...valid, deadStones: ["10,1"] }), null);
   assert.equal(validateGoSave({ ...valid, history: [{}] }), null);
+  assert.equal(validateGoSave({ ...valid, running: true, consecutivePasses: 2 }), null);
+  assert.equal(validateGoSave({ ...valid, scoring: true, consecutivePasses: 1 }), null);
+  assert.equal(validateGoSave({ ...valid, currentPlayer: 99 }), null);
+  const initialSnapshot = { board: createGoBoard(9), currentPlayer: BLACK, captures: { [BLACK]: 0, [WHITE]: 0 }, consecutivePasses: 0, lastMove: null };
+  const move = playMove(initialSnapshot.board, 4, 4, BLACK);
+  const afterMove = { ...valid, board: move.board, currentPlayer: WHITE, lastMove: { row: 4, col: 4 }, history: [initialSnapshot] };
+  assert.ok(validateGoSave(afterMove));
+  assert.equal(validateGoSave({ ...afterMove, board: createGoBoard(9) }), null);
+
+  const afterFirstPass = { ...valid, currentPlayer: WHITE, consecutivePasses: 1, history: [initialSnapshot] };
+  const beforeSecondPass = { board: initialSnapshot.board, currentPlayer: WHITE, captures: initialSnapshot.captures, consecutivePasses: 1, lastMove: null };
+  const scoring = { ...valid, running: false, scoring: true, currentPlayer: BLACK, consecutivePasses: 2, history: [initialSnapshot, beforeSecondPass] };
+  assert.ok(validateGoSave(afterFirstPass));
+  assert.ok(validateGoSave(scoring));
+  assert.ok(validateGoSave({ ...scoring, currentPlayer: WHITE, scoringConfirmations: [BLACK] }));
+  assert.ok(validateGoSave({ ...scoring, running: false, scoring: false, resultOpen: true, currentPlayer: WHITE, scoringConfirmations: [BLACK, WHITE] }));
 });
 
 test("tic-tac-toe rejects history that does not reproduce its board", () => {
