@@ -12,7 +12,7 @@ const state = { mode: "pvp", difficulty: "medium", board: createBoard(), current
 let audioContext;
 let resumeAiAfterLimit = false;
 
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateTicTacToeSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateTicTacToeSave, storage: localStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   return gameStore.save({ version: 1, mode: state.mode, difficulty: state.difficulty, board: state.board, currentPlayer: state.currentPlayer, running: state.running, winner: state.winner, winningLine: state.winningLine, history: state.history, soundOn: state.soundOn, cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"), resultOpen: !elements.resultPanel.classList.contains("hidden") });

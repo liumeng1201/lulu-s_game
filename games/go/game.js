@@ -1,4 +1,4 @@
-import { BLACK, WHITE, boardKey, createBoard, findObviousDeadStones, getGroup, playMove, scoreBoard } from "./engine.mjs";
+import { BLACK, WHITE, boardKey, chooseAiMove, createBoard, findObviousDeadStones, getGroup, playMove, scoreBoard } from "./engine.mjs";
 import { startPlayLimit } from "../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../assets/js/safe-storage.js";
 import { validateGoSave } from "./save-state.mjs";
@@ -21,7 +21,8 @@ const draft = { mode: "pvp", difficulty: "medium", size: 9 };
 let aiWorker;
 let audioContext;
 let resumeAiAfterLimit = false;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGoSave, storage: localStorage, sessionStorage, onConflict: showSaveConflict });
+let aiWorkerFailed = false;
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGoSave, storage: localStorage, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -48,12 +49,27 @@ function loadGame() {
 
 function restartAiWorker() {
   aiWorker?.terminate();
+  aiWorkerFailed = false;
   aiWorker = new Worker(new URL("./ai-worker.js", import.meta.url), { type: "module" });
   aiWorker.addEventListener("message", ({ data }) => {
     if (data.requestId !== state.aiRequestId || !state.running || state.currentPlayer !== WHITE) return;
     state.thinking = false;
     if (data.move) placeStone(...data.move, true); else passTurn(true);
   });
+  const failed = (event) => { event.preventDefault?.(); aiWorkerFailed = true; if (state.thinking) runAiFallback(); };
+  aiWorker.addEventListener("error", failed);
+  aiWorker.addEventListener("messageerror", failed);
+}
+
+function runAiFallback() {
+  if (!state.running || state.mode !== "ai" || state.currentPlayer !== WHITE) return;
+  state.thinking = false;
+  try {
+    const move = chooseAiMove(state.board, "easy", WHITE, previousPositionKey(), Math.random, { opponentPassed: state.consecutivePasses === 1 });
+    if (move) placeStone(...move, true); else passTurn(true);
+  } catch {
+    state.mode = "pvp"; updateStatus(); elements.notice.textContent = "电脑暂时不可用，已切换人人对战"; saveGame();
+  }
 }
 
 function cancelAi() {
@@ -199,6 +215,7 @@ function passTurn(automated = false) {
 function requestAiMove() {
   state.thinking = true; updateStatus();
   saveGame();
+  if (aiWorkerFailed) { runAiFallback(); return; }
   const requestId = ++state.aiRequestId;
   aiWorker.postMessage({ requestId, board: state.board, difficulty: state.difficulty, player: WHITE, previousBoardKey: previousPositionKey(), opponentPassed: state.consecutivePasses === 1 });
 }
