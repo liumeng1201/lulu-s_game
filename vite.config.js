@@ -13,6 +13,7 @@ export default defineConfig({
         resolve(import.meta.dirname, "games/tic-tac-toe/index.html"),
         resolve(import.meta.dirname, "games/chess/index.html"),
         resolve(import.meta.dirname, "games/explore-world/index.html"),
+        resolve(import.meta.dirname, "games/2048/index.html"),
       ],
       output: {
         manualChunks(id) {

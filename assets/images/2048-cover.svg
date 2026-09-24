@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-labelledby="title desc">
+  <title id="title">2048 游戏封面</title><desc id="desc">紫色背景上的彩色数字方块逐步合成为 2048</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#694eb4"/><stop offset="1" stop-color="#c589c9"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#39256f" flood-opacity=".28"/></filter></defs>
+  <rect width="800" height="480" rx="42" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".68"><circle cx="86" cy="73" r="4"/><circle cx="703" cy="72" r="5"/><circle cx="650" cy="402" r="3"/><circle cx="123" cy="392" r="3"/><path d="m714 173 7 15 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/></g>
+  <g filter="url(#shadow)" font-family="system-ui,sans-serif" font-weight="900" text-anchor="middle">
+    <g transform="rotate(-8 280 245)"><rect x="119" y="109" width="145" height="145" rx="26" fill="#f3ead6"/><text x="191" y="204" fill="#6f6555" font-size="66">2</text><rect x="279" y="128" width="145" height="145" rx="26" fill="#edc979"/><text x="351" y="223" fill="#fff9e9" font-size="66">4</text></g>
+    <rect x="201" y="272" width="150" height="150" rx="27" fill="#eb996b"/><text x="276" y="370" fill="#fff8ea" font-size="62">128</text>
+    <rect x="421" y="173" width="205" height="205" rx="34" fill="#e3b93d"/><rect x="431" y="183" width="185" height="185" rx="27" fill="none" stroke="#fff2bd" stroke-width="5"/><text x="523" y="306" fill="#fffdf4" font-size="68">2048</text>
+  </g>
+</svg>
