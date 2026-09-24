@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="在五分钟内连接相同图案，清空棋盘，挑战连连看！" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>连连看｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">🐾</span><span>连连看</span></div>
+        <span class="round-time" aria-label="剩余时间"><span aria-hidden="true">⏱</span> <strong id="timer">05:00</strong></span>
+      </header>
+
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="game-heading">
+          <div><p class="eyebrow">FIND THE PAIRS</p><h1 id="gameTitle">连连看</h1><p class="subtitle">找到相同图案，连起来消除吧！</p></div>
+          <div class="round-stats" aria-label="本局进度"><div><strong id="matchCount">0/32</strong><span>已消除</span></div><div><strong id="hintCount">3</strong><span>剩余提示</span></div></div>
+        </div>
+
+        <div class="board-stage">
+          <div id="board" class="board" role="grid" tabindex="0" aria-label="连连看棋盘。方向键移动光标，按回车或空格选择图案。" aria-describedby="instructions"></div>
+          <section id="startPanel" class="overlay-panel" aria-labelledby="startTitle">
+            <div class="panel-icon" aria-hidden="true">🧩</div><p class="eyebrow">五分钟配对挑战</p><h2 id="startTitle">准备好了吗？</h2>
+            <p class="panel-copy">在时间结束前清空 8×8 棋盘。相同图案之间的连线最多转弯两次，也可以绕过棋盘外围。</p>
+            <button id="startButton" class="primary-button" type="button">开始挑战 <span aria-hidden="true">→</span></button>
+            <p class="mini-tip">点击两张图案配对，或用方向键和回车操作。</p>
+          </section>
+          <section id="pausePanel" class="overlay-panel hidden" aria-labelledby="pauseTitle">
+            <div class="panel-icon" aria-hidden="true">⏸️</div><p class="eyebrow">暂停一下</p><h2 id="pauseTitle">游戏已暂停</h2>
+            <p id="pauseMessage" class="panel-copy">倒计时已暂停，准备好后继续吧。</p>
+            <button id="resumeButton" class="primary-button" type="button">继续游戏 <span aria-hidden="true">▶</span></button>
+          </section>
+          <section id="resultPanel" class="overlay-panel hidden" aria-labelledby="resultTitle" aria-live="polite">
+            <div id="resultIcon" class="panel-icon" aria-hidden="true">🎉</div><p class="eyebrow">本次挑战</p><h2 id="resultTitle">全部配对成功！</h2>
+            <p id="resultMessage" class="panel-copy"></p>
+            <button id="restartButton" class="primary-button" type="button">再玩一局 <span aria-hidden="true">↻</span></button>
+          </section>
+        </div>
+
+        <div class="game-controls">
+          <p id="statusMessage" class="status-message" aria-live="polite">点击“开始挑战”进入游戏。</p>
+          <div class="control-buttons" aria-label="游戏操作">
+            <button id="hintButton" class="control-button" type="button" disabled>💡 提示 <span id="hintButtonCount">3</span></button>
+            <button id="shuffleButton" class="control-button" type="button" disabled>🔀 洗牌</button>
+            <button id="pauseButton" class="control-button" type="button" disabled>Ⅱ 暂停</button>
+          </div>
+          <p id="instructions" class="control-tip">最多转弯两次，连线不能穿过其他图案；时间耗尽本局结束。</p>
+        </div>
+      </section>
+      <p class="footer-tip">慢慢观察，找到可以连起来的图案 ✨</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
