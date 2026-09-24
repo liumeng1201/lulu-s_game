@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="滑动方块合并数字，挑战 2048，并在本地排行榜留下成绩。" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>2048｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <a class="brand" href="index.html" aria-label="2048 首页"><span class="brand-mark" aria-hidden="true">2048</span><span>数字合成</span></a>
+        <button id="leaderboardButton" class="icon-button" type="button" aria-haspopup="dialog">🏆 <span>排行榜</span></button>
+      </header>
+
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="game-heading">
+          <div><p class="eyebrow">MERGE · THINK · REACH 2048</p><h1 id="gameTitle">2048</h1><p class="subtitle">滑动方块，把相同数字合并起来！</p></div>
+          <div class="score-pills" aria-label="游戏得分"><div class="score-pill"><span>本局得分</span><strong id="scoreValue">0</strong></div><div class="score-pill best"><span>最高得分</span><strong id="bestValue">0</strong></div></div>
+        </div>
+
+        <div class="board-stage">
+          <div id="board" class="board" role="grid" tabindex="0" aria-label="2048 游戏棋盘。使用方向键或 W A S D 移动数字方块。"></div>
+          <section id="setupPanel" class="overlay-panel" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+            <div class="panel-icon" aria-hidden="true">🔢</div><p class="eyebrow">准备好了吗？</p><h2 id="setupTitle">开始你的数字挑战</h2>
+            <p class="panel-copy">设置一个昵称，成绩会保存在这台设备的当前浏览器中。</p>
+            <label class="field-label" for="nicknameInput">玩家昵称 <span>必填 · 最多 12 个字符</span></label>
+            <input id="nicknameInput" class="nickname-input" type="text" maxlength="24" autocomplete="nickname" placeholder="例如：数字小达人" required />
+            <p id="setupError" class="field-error" aria-live="polite"></p>
+            <button id="startButton" class="primary-button" type="button">开始游戏 <span aria-hidden="true">→</span></button>
+            <p class="mini-tip">合成到 2048 即获胜；获胜后本局结束。</p>
+          </section>
+          <section id="resultPanel" class="overlay-panel hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-live="polite">
+            <div id="resultIcon" class="panel-icon" aria-hidden="true">🎉</div><p class="eyebrow">本局结束</p><h2 id="resultTitle">你赢啦！</h2>
+            <p id="resultMessage" class="panel-copy"></p>
+            <button id="playAgainButton" class="primary-button" type="button">再玩一局 <span aria-hidden="true">↻</span></button>
+            <button id="resultLeaderboardButton" class="secondary-button" type="button">查看本地排行榜</button>
+          </section>
+        </div>
+
+        <div class="game-controls">
+          <p id="playerLabel" class="player-label">玩家：尚未设置</p>
+          <p class="control-tip">电脑按 <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动<br /><span>手机和平板可在棋盘上滑动</span></p>
+          <button id="newGameButton" class="secondary-button" type="button" disabled>新游戏</button>
+        </div>
+      </section>
+
+      <p class="footer-tip">每一步都可能带来新的组合 ✨</p>
+
+      <dialog id="leaderboardDialog" class="leaderboard-dialog" aria-labelledby="leaderboardTitle">
+        <div class="dialog-heading"><div><p class="eyebrow">THIS BROWSER ONLY</p><h2 id="leaderboardTitle">本地排行榜</h2></div><button id="closeLeaderboardButton" class="close-button" type="button" aria-label="关闭排行榜">×</button></div>
+        <p class="dialog-copy">仅保存在当前浏览器，不会上传或与其他设备同步。</p>
+        <div class="nickname-editor"><label class="field-label" for="editNicknameInput">我的昵称</label><div class="edit-row"><input id="editNicknameInput" class="nickname-input" type="text" maxlength="24" autocomplete="nickname" /><button id="saveNicknameButton" class="small-button" type="button">保存昵称</button></div><p id="nicknameError" class="field-error" aria-live="polite"></p></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">排名</th><th scope="col">玩家</th><th scope="col">得分</th><th scope="col">最高数字</th><th scope="col">结果</th></tr></thead><tbody id="leaderboardRows"></tbody></table></div>
+        <p id="emptyLeaderboard" class="empty-rank">还没有完成的对局，来挑战第一名吧！</p>
+      </dialog>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
