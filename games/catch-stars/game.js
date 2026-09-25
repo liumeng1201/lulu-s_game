@@ -55,7 +55,7 @@ const state = {
 let audioContext;
 let encouragementTimer;
 let pausedBeforePlayLimit = null;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateCatchStarsSave, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateCatchStarsSave, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -247,8 +247,9 @@ function restoreUi(value) {
   render();
 }
 
-function lockGame() {
-  saveGame();
+function lockGame(reason) {
+  if (reason === "busy") gameStore.suspend();
+  else saveGame();
   pausedBeforePlayLimit = state.paused;
   if (state.running) state.paused = true;
   setMovement("left", false); setMovement("right", false);

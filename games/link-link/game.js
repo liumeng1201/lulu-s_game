@@ -18,7 +18,7 @@ const elements = {
   hintCount: $("hintCount"), hintButtonCount: $("hintButtonCount"), hintButton: $("hintButton"), shuffleButton: $("shuffleButton"),
   pauseButton: $("pauseButton"), statusMessage: $("statusMessage"),
 };
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateLinkLinkSave, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateLinkLinkSave, onConflict: showSaveConflict });
 const save = gameStore.load() ?? createDefaultSave();
 const state = { keyboardCursor: 0, hintPair: null, hintTimeout: null, lastTickAt: null, lastSavedSecond: null };
 const emptyBoard = createEmptyBoard();
@@ -305,8 +305,22 @@ if (game?.status === "playing") startClock();
 else if (!game) elements.startButton.focus();
 else if (game.status === "paused" && game.pauseReason === "manual") elements.resumeButton.focus();
 else if (["won", "lost"].includes(game.status)) elements.restartButton.focus();
+function pauseForOtherTab() {
+  if (!game || game.status !== "playing") return;
+  const elapsed = state.lastTickAt === null ? 0 : Math.max(0, performance.now() - state.lastTickAt);
+  game = advanceTimer(game, elapsed);
+  stopClock();
+  if (game.status === "playing") game = { ...game, status: "paused", pauseReason: "manual" };
+  render();
+}
+
 startPlayLimit({
-  onLock() { pauseGame("limit"); },
+  onLock(reason) {
+    if (reason === "busy") {
+      gameStore.suspend();
+      pauseForOtherTab();
+    } else pauseGame("limit");
+  },
   onResume() {
     if (game?.status === "paused" && game.pauseReason === "limit") {
       game = { ...game, status: "playing", pauseReason: null };

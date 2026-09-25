@@ -13,7 +13,7 @@ const elements = {
   closeLeaderboardButton: $("closeLeaderboardButton"), editNicknameInput: $("editNicknameInput"), saveNicknameButton: $("saveNicknameButton"),
   nicknameError: $("nicknameError"), leaderboardRows: $("leaderboardRows"), emptyLeaderboard: $("emptyLeaderboard"),
 };
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validate2048Save, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validate2048Save, onConflict: showSaveConflict });
 let save = gameStore.load() ?? createDefaultSave();
 let touchStart = null;
 
@@ -168,4 +168,4 @@ if (save.currentRun?.game.status !== "playing" && save.currentRun && !save.curre
 renderBoard();
 if (!save.nickname && !save.currentRun) elements.nicknameInput.focus();
 window.addEventListener("pagehide", persist);
-startPlayLimit({ onLock: persist, onResume: renderBoard });
+startPlayLimit({ onLock(reason) { if (reason === "busy") gameStore.suspend(); else persist(); }, onResume: renderBoard });

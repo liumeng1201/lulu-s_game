@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import worldMapUrl from "../assets/village-map-v2.png";
-import { CHARACTERS, CHARACTER_SHEETS, characterFlipsHorizontally, characterFrame, characterPortrait } from "./character-data.js";
-import { AREAS, LOCATIONS, WORLD_SCENE } from "./world-data.js";
+import { CHARACTERS, characterFlipsHorizontally, characterFrame, characterPortrait } from "./character-data.js";
+import { AREAS, LOCATIONS, WORLD_SCENE, characterIdsForScene } from "./world-data.js";
 import { SAVE_KEY, DEFAULT_SAVE, validateExploreSave } from "./save-system.js";
 import { startPlayLimit } from "../../../assets/js/play-limit.js";
 import { createVersionedGameStore, showSaveConflict } from "../../../assets/js/safe-storage.js";
@@ -21,7 +21,7 @@ const FLOOR_START_Y = 210;
 const BOTTOM_FOOT_MARGIN = 24;
 const INTERACTION_DISTANCE = 120;
 const ui = Object.fromEntries(["sceneTitle", "sceneHint", "saveStatus", "soundButton", "dialogue", "dialogueName", "dialogueAvatar", "dialogueText"].map((id) => [id, document.querySelector(`#${id}`)]));
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateExploreSave, onConflict: showSaveConflict });
 let soundOn = true;
 let activeScene;
 let audioContext;
@@ -44,6 +44,65 @@ function tone(frequency = 420, duration = .1) {
 }
 
 function setUi(title, hint) { ui.sceneTitle.textContent = title; ui.sceneHint.textContent = hint; }
+
+function queueCharacterSheets(scene, characterIds) {
+  const missingKeys = [];
+  for (const characterId of characterIds) {
+    const character = CHARACTERS[characterId];
+    if (!character || scene.textures.exists(character.textureKey)) continue;
+    scene.load.spritesheet(character.textureKey, character.url, { frameWidth: 256, frameHeight: 256, endFrame: 15 });
+    missingKeys.push(character.textureKey);
+  }
+  return missingKeys;
+}
+
+function applyCharacterTextureFilters(scene, textureKeys) {
+  textureKeys.forEach((textureKey) => scene.textures.get(textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST));
+}
+
+function openAreaWithCharacters(scene, areaId, saved) {
+  if (scene.areaTransitionPending) return;
+  const requiredIds = characterIdsForScene(areaId);
+  const missingKeys = queueCharacterSheets(scene, requiredIds);
+  const enterArea = () => {
+    scene.areaTransitionPending = false;
+    const failed = missingKeys.some((textureKey) => !scene.textures.exists(textureKey));
+    if (failed) {
+      ui.saveStatus.textContent = "人物素材加载失败，请检查网络后重试。";
+      return;
+    }
+    applyCharacterTextureFilters(scene, missingKeys);
+    scene.scene.start("area", { areaId, saved });
+  };
+  if (!missingKeys.length) {
+    enterArea();
+    return;
+  }
+  scene.areaTransitionPending = true;
+  scene.load.once("complete", enterArea);
+  scene.load.start();
+}
+
+function openWorldMap(scene) {
+  if (scene.areaTransitionPending) return;
+  const enterWorldMap = () => {
+    scene.areaTransitionPending = false;
+    if (!scene.textures.exists("world-map")) {
+      ui.saveStatus.textContent = "地图素材加载失败，请检查网络后重试。";
+      return;
+    }
+    scene.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    scene.scene.start(WORLD_SCENE);
+  };
+  if (scene.textures.exists("world-map")) {
+    enterWorldMap();
+    return;
+  }
+  scene.areaTransitionPending = true;
+  scene.load.once("complete", enterWorldMap);
+  scene.load.image("world-map", worldMapUrl);
+  scene.load.start();
+}
 
 function showDialogue(npc) {
   clearInterval(dialogueTimer);
@@ -118,14 +177,15 @@ function drawFurniture(scene, kind, x, y) {
 class BootScene extends Phaser.Scene {
   constructor() { super("boot"); }
   preload() {
-    this.load.image("world-map", worldMapUrl);
-    Object.entries(CHARACTER_SHEETS).forEach(([textureKey, url]) => this.load.spritesheet(textureKey, url, { frameWidth: 256, frameHeight: 256, endFrame: 15 }));
+    this.saved = loadExploreSave();
+    this.target = this.saved.sceneId === WORLD_SCENE || AREAS[this.saved.sceneId] ? this.saved.sceneId : "home-living";
+    this.characterTextureKeys = queueCharacterSheets(this, characterIdsForScene(this.target));
+    if (this.target === WORLD_SCENE) this.load.image("world-map", worldMapUrl);
   }
   create() {
-    Object.keys(CHARACTER_SHEETS).forEach((textureKey) => this.textures.get(textureKey).setFilter(Phaser.Textures.FilterMode.NEAREST));
-    this.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    const save = loadExploreSave(); const target = save.sceneId === WORLD_SCENE || AREAS[save.sceneId] ? save.sceneId : "home-living";
-    this.scene.start(target === WORLD_SCENE ? WORLD_SCENE : "area", { areaId: target, saved: save });
+    applyCharacterTextureFilters(this, this.characterTextureKeys);
+    if (this.textures.exists("world-map")) this.textures.get("world-map").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.scene.start(this.target === WORLD_SCENE ? WORLD_SCENE : "area", { areaId: this.target, saved: this.saved });
   }
 }
 
@@ -143,7 +203,7 @@ class WorldMapScene extends Phaser.Scene {
       marker.add([bg, label]);
       marker.on("pointerover", () => this.tweens.add({ targets: marker, y: y - 8, duration: 100 }));
       marker.on("pointerout", () => this.tweens.add({ targets: marker, y, duration: 100 }));
-      const activate = () => { tone(520); this.scene.start("area", { areaId: location.hub }); };
+      const activate = () => { tone(520); openAreaWithCharacters(this, location.hub); };
       marker.on("pointerup", activate);
       return { marker, bg, color: location.color, activate };
     });
@@ -220,7 +280,12 @@ class AreaScene extends Phaser.Scene {
       const frame = addPixelRect(this, 0, 0, 106, 166, 0x6f4938, 0x3d3032); const panel = addPixelRect(this, 0, 7, 72, 128, 0xc9834c, 0x4d3534);
       const sign = this.add.text(0, 112, door.label, { fontFamily: '"Microsoft YaHei", monospace', fontSize: "15px", fontStyle: "bold", color: "#fff2c1", backgroundColor: "#493a58", padding: { x: 7, y: 4 } }).setOrigin(.5);
       container.add([frame, panel, sign]);
-      const activate = () => { tone(470); saveExplorePosition(this.areaId, this.player.x, this.player.y); this.scene.start(door.target === WORLD_SCENE ? WORLD_SCENE : "area", door.target === WORLD_SCENE ? undefined : { areaId: door.target }); };
+      const activate = () => {
+        tone(470);
+        saveExplorePosition(this.areaId, this.player.x, this.player.y);
+        if (door.target === WORLD_SCENE) openWorldMap(this);
+        else openAreaWithCharacters(this, door.target);
+      };
       container.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
       this.interactables.push({ object: container, activate });
     });
@@ -309,7 +374,7 @@ const game = new Phaser.Game({
 });
 
 function saveCurrentPosition() { if (activeScene?.player) saveExplorePosition(activeScene.areaId, activeScene.player.x, activeScene.player.y); }
-function lockGame() { saveCurrentPosition(); game.loop.sleep(); }
+function lockGame(reason) { if (reason === "busy") gameStore.suspend(); else saveCurrentPosition(); game.loop.sleep(); }
 function resumeGameAfterLimit() { game.loop.wake(); }
 
 ui.dialogue.addEventListener("close", () => clearInterval(dialogueTimer));

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createSafeJsonStore, createVersionedGameStore } from "../assets/js/safe-storage.js";
+import { createSafeJsonStore, createVersionedGameStore, getLocalStorageSafely } from "../assets/js/safe-storage.js";
 
 function memoryStorage() {
   const values = new Map();
@@ -12,6 +12,17 @@ test("safe storage keeps an in-memory value when persistent writes fail", () => 
   const store = createSafeJsonStore("state", storage);
   assert.equal(store.write({ value: 7 }), false);
   assert.deepEqual(store.read(), { value: 7 });
+  assert.equal(store.isPersistent(), false);
+});
+
+test("safe localStorage lookup catches a throwing property getter and retains memory saves", () => {
+  const host = Object.defineProperty({}, "localStorage", { get() { throw new Error("blocked"); } });
+  const storage = getLocalStorageSafely(host);
+  assert.equal(storage, null);
+
+  const store = createSafeJsonStore("state", storage);
+  assert.equal(store.write({ value: 9 }), false);
+  assert.deepEqual(store.read(), { value: 9 });
   assert.equal(store.isPersistent(), false);
 });
 
@@ -37,6 +48,18 @@ test("a fresh tab can save after loading the latest revision", () => {
   const reopened = createVersionedGameStore({ key: "game", validate, storage, sessionStorage: memoryStorage() });
   assert.deepEqual(reopened.load(), { score: 1 });
   assert.equal(reopened.save({ score: 2 }), true);
+});
+
+test("a suspended tab cannot overwrite the active tab's saved progress", () => {
+  const storage = memoryStorage();
+  const validate = (value) => Number.isInteger(value?.score) ? { score: value.score } : null;
+  const active = createVersionedGameStore({ key: "game", validate, storage });
+  const waiting = createVersionedGameStore({ key: "game", validate, storage });
+  active.load(); waiting.load(); waiting.suspend();
+
+  assert.equal(active.save({ score: 8 }), true);
+  assert.equal(waiting.save({ score: 2 }), false);
+  assert.deepEqual(active.load(), { score: 8 });
 });
 
 test("duplicated tabs with cloned session storage still receive distinct writer identities", () => {
