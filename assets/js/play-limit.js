@@ -1,3 +1,5 @@
+import { createSafeJsonStore, getLocalStorageSafely } from "./safe-storage.js";
+
 const STORAGE_KEY = "lulu-play-limit-v1";
 const PLAY_LIMIT_MS = 10 * 60 * 1000;
 const REST_DURATION_MS = 60 * 60 * 1000;
@@ -31,7 +33,7 @@ export function formatRemaining(milliseconds) {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-export function transitionPlayLimit(value, { now, tabId: owner, visible }) {
+export function transitionPlayLimit(value, { now, tabId: owner, visible, allowAcquire = true }) {
   const state = normalizePlayLimitState(value);
   let changed = false;
   if (state.blockedUntil || state.usedMs >= PLAY_LIMIT_MS) {
@@ -45,8 +47,11 @@ export function transitionPlayLimit(value, { now, tabId: owner, visible }) {
       state.updatedAt = now; state.ownerId = ""; state.leaseUntil = 0; changed = true;
       if (state.usedMs >= PLAY_LIMIT_MS) { state.usedMs = PLAY_LIMIT_MS; state.blockedUntil = now + REST_DURATION_MS; }
     }
-    return { state, status: state.blockedUntil ? "resting" : "active", changed };
+    const busy = state.ownerId && state.ownerId !== owner && state.leaseUntil > now;
+    const status = state.blockedUntil ? "resting" : busy ? "busy" : allowAcquire ? "active" : "takeover";
+    return { state, status, changed };
   }
+  if (!allowAcquire && (!state.ownerId || state.leaseUntil <= now)) return { state, status: "takeover", changed };
   if (!state.ownerId || state.ownerId === owner || state.leaseUntil <= now) {
     if (state.ownerId === owner) state.usedMs += Math.max(0, now - state.updatedAt);
     state.ownerId = owner; state.updatedAt = now; state.leaseUntil = now + LEASE_MS; changed = true;
@@ -54,6 +59,8 @@ export function transitionPlayLimit(value, { now, tabId: owner, visible }) {
       state.usedMs = PLAY_LIMIT_MS; state.blockedUntil = now + REST_DURATION_MS; state.ownerId = ""; state.leaseUntil = 0;
       return { state, status: "resting", changed };
     }
+  } else {
+    return { state, status: "busy", changed };
   }
   return { state, status: "active", changed };
 }
@@ -94,7 +101,7 @@ function createOverlay() {
   return overlay;
 }
 
-export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage = localStorage } = {}) {
+export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage = getLocalStorageSafely() } = {}) {
   const stateStore = createSafeJsonStore(STORAGE_KEY, storage);
   ensureStyles();
   const overlay = createOverlay();
@@ -105,6 +112,7 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
   const continueButton = overlay.querySelector(".play-limit-continue");
   const card = overlay.querySelector(".play-limit-card");
   let locked = false;
+  let staleGameState = false;
   let timer;
   let previousFocus;
   let backgroundStates = [];
@@ -135,18 +143,31 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
     }
   }
 
-  function showLocked(state, now) {
+  function showLocked(state, now, status) {
     if (!locked) {
       locked = true;
       previousFocus = document.activeElement;
-      try { onLock(); } catch (error) { console.error("Failed to save game before rest period", error); }
+      try { onLock(status); } catch (error) { console.error("Failed to save game before blocking this page", error); }
       overlay.hidden = false;
       setBackgroundInert(true);
       card.focus();
     }
     overlay.hidden = false;
     const remaining = state.blockedUntil - now;
-    if (remaining > 0) {
+    if (status === "busy") {
+      title.textContent = "游戏正在另一个标签页运行";
+      message.textContent = "请切回正在计时的游戏页面，或关闭它后再继续。";
+      countdown.hidden = true;
+      hint.textContent = "为避免绕过游玩时限，此页面暂时不可操作。";
+      continueButton.hidden = true;
+    } else if (status === "takeover") {
+      title.textContent = "可以继续游戏啦！";
+      message.textContent = "另一个标签页已结束游戏。请刷新此页，载入最新进度后继续。";
+      countdown.hidden = true;
+      hint.textContent = "刷新后会恢复另一标签页保存的进度。";
+      continueButton.hidden = false;
+      continueButton.textContent = "刷新并继续";
+    } else if (remaining > 0) {
       title.textContent = "眼睛也要放个假";
       message.textContent = "今天已经认真玩了 10 分钟，休息一会儿吧！";
       countdown.hidden = false;
@@ -156,10 +177,13 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
     } else {
       const becameReady = continueButton.hidden;
       title.textContent = "休息完成啦！";
-      message.textContent = "欢迎回来，准备好后可以继续刚才的游戏。";
+      message.textContent = staleGameState
+        ? "休息结束啦。刷新页面以载入最新进度后继续游戏。"
+        : "欢迎回来，准备好后可以继续刚才的游戏。";
       countdown.hidden = true;
-      hint.textContent = "点击按钮开始新一轮 10 分钟游戏时间。";
+      hint.textContent = staleGameState ? "刷新后会载入另一标签页保存的进度。" : "点击按钮开始新一轮 10 分钟游戏时间。";
       continueButton.hidden = false;
+      continueButton.textContent = staleGameState ? "刷新并继续" : "继续游戏";
       if (becameReady) continueButton.focus();
     }
   }
@@ -183,14 +207,22 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
 
   function tick() {
     const now = Date.now();
-    const result = transitionPlayLimit(stateStore.read(), { now, tabId, visible: !document.hidden });
+    const result = transitionPlayLimit(stateStore.read(), { now, tabId, visible: !document.hidden, allowAcquire: !staleGameState });
     if (result.changed) stateStore.write(result.state);
-    if (result.status === "resting" || result.status === "ready") showLocked(result.state, now);
+    if (result.status === "busy") staleGameState = true;
+    if (["resting", "ready", "busy", "takeover"].includes(result.status)) showLocked(result.state, now, result.status);
+    else if (staleGameState) showLocked(result.state, now, "takeover");
     else hideOverlay();
   }
 
   function resume() {
     const now = Date.now();
+    if (staleGameState) {
+      const reset = resumePlayLimitState(stateStore.read(), now);
+      if (reset) stateStore.write(reset);
+      window.location.reload();
+      return;
+    }
     const state = resumePlayLimitState(stateStore.read(), now);
     if (!state) return;
     stateStore.write(state);
@@ -209,8 +241,7 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
   timer = window.setInterval(tick, TICK_MS);
   tick();
 
-  return { tick, stop() { clearInterval(timer); flushAndRelease(); document.removeEventListener("visibilitychange", tick); window.removeEventListener("storage", handleStorage); window.removeEventListener("pagehide", handlePageHide); window.removeEventListener("keydown", blockGameInput, true); window.removeEventListener("keyup", blockGameInput, true); setBackgroundInert(false); overlay.remove(); } };
+  return { tick, isLocked: () => locked, stop() { clearInterval(timer); flushAndRelease(); document.removeEventListener("visibilitychange", tick); window.removeEventListener("storage", handleStorage); window.removeEventListener("pagehide", handlePageHide); window.removeEventListener("keydown", blockGameInput, true); window.removeEventListener("keyup", blockGameInput, true); setBackgroundInert(false); overlay.remove(); } };
 }
 
 export { PLAY_LIMIT_MS, REST_DURATION_MS, STORAGE_KEY };
-import { createSafeJsonStore } from "./safe-storage.js";

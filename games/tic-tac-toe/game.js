@@ -12,7 +12,7 @@ const state = { mode: "pvp", difficulty: "medium", board: createBoard(), current
 let audioContext;
 let resumeAiAfterLimit = false;
 
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateTicTacToeSave, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateTicTacToeSave, onConflict: showSaveConflict });
 
 function saveGame() {
   return gameStore.save({ version: 1, mode: state.mode, difficulty: state.difficulty, board: state.board, currentPlayer: state.currentPlayer, running: state.running, winner: state.winner, winningLine: state.winningLine, history: state.history, soundOn: state.soundOn, cursor: state.cursor, modeOpen: !elements.modePanel.classList.contains("hidden"), resultOpen: !elements.resultPanel.classList.contains("hidden") });
@@ -114,7 +114,6 @@ function restoreUi(value) {
   elements.difficultyGroup.classList.toggle("hidden", state.mode !== "ai");
   if (value) { elements.modePanel.classList.toggle("hidden", !value.modeOpen); elements.resultPanel.classList.toggle("hidden", !value.resultOpen); if (value.resultOpen) updateResultPanel(); }
   elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇"; elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音"); renderBoard(); updateStatus();
-  if (state.running && state.mode === "ai" && state.currentPlayer === O) requestAiMove();
 }
 
 document.querySelectorAll("[data-mode]").forEach((button) => button.addEventListener("click", () => { state.mode = button.dataset.mode; document.querySelectorAll("[data-mode]").forEach((item) => { const selected = item === button; item.classList.toggle("selected", selected); item.setAttribute("aria-pressed", selected); }); elements.difficultyGroup.classList.toggle("hidden", state.mode !== "ai"); updateStatus(); saveGame(); }));
@@ -126,7 +125,8 @@ const savedGame = gameStore.load();
 if (savedGame) Object.assign(state, { mode: savedGame.mode, difficulty: savedGame.difficulty, board: savedGame.board, currentPlayer: savedGame.currentPlayer, running: savedGame.running, winner: savedGame.winner, winningLine: savedGame.winningLine, history: savedGame.history, soundOn: savedGame.soundOn, cursor: savedGame.cursor });
 restoreUi(savedGame);
 
-function lockGame() { saveGame(); resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === O; clearTimeout(state.aiTimer); state.thinking = false; updateStatus(); }
+function lockGame(reason) { if (reason === "busy") gameStore.suspend(); else saveGame(); resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === O; clearTimeout(state.aiTimer); state.thinking = false; updateStatus(); }
 function resumeGameAfterLimit() { if (resumeAiAfterLimit && state.running && state.currentPlayer === O) requestAiMove(); resumeAiAfterLimit = false; saveGame(); }
 window.addEventListener("pagehide", saveGame);
-startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
+const playLimit = startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
+if (!playLimit.isLocked() && state.running && state.mode === "ai" && state.currentPlayer === O) requestAiMove();

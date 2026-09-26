@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_SAVE, SAVE_KEY, loadSave, savePosition } from "../games/explore-world/src/save-system.js";
+import { AREAS, WORLD_SCENE, characterIdsForScene } from "../games/explore-world/src/world-data.js";
 
 function memoryStorage(initial) {
   const values = new Map(initial ? [[SAVE_KEY, initial]] : []);
@@ -44,4 +45,14 @@ test("invalid save data falls back to home", () => {
 test("a save for a removed or unknown scene falls back to home", () => {
   const removedScene = JSON.stringify({ version: 4, sceneId: "school-hall", x: 640, y: 500 });
   assert.deepEqual(loadSave(memoryStorage(removedScene)), DEFAULT_SAVE);
+});
+
+test("scene asset lists include only the player and that scene's NPCs", () => {
+  assert.deepEqual(characterIdsForScene(WORLD_SCENE), ["player"]);
+  for (const [sceneId, area] of Object.entries(AREAS)) {
+    const ids = characterIdsForScene(sceneId);
+    assert.equal(ids[0], "player");
+    assert.equal(new Set(ids).size, ids.length);
+    assert.deepEqual(new Set(ids.slice(1)), new Set(area.npcs.map((npc) => npc.characterId)));
+  }
 });

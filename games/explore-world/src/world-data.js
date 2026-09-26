@@ -57,3 +57,8 @@ export const AREAS = {
     ...Array.from({length:4},(_,i)=>({name:`顾客${i+1}`,characterId:`customer-${i+1}`,role:"customer",lines:["今天的蔬菜看起来很新鲜。","我在找家里需要的东西。"]})),
   ]},
 };
+
+export function characterIdsForScene(sceneId) {
+  const npcIds = AREAS[sceneId]?.npcs.map((npc) => npc.characterId) ?? [];
+  return [...new Set(["player", ...npcIds])];
+}

@@ -1,6 +1,11 @@
-export function createSafeJsonStore(key, storage) {
+export function getLocalStorageSafely(host = globalThis) {
+  try { return host.localStorage ?? null; }
+  catch { return null; }
+}
+
+export function createSafeJsonStore(key, storage = getLocalStorageSafely()) {
   let memoryValue = null;
-  let persistent = true;
+  let persistent = Boolean(storage);
 
   function read() {
     if (persistent) {
@@ -28,13 +33,14 @@ function randomId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
-export function createVersionedGameStore({ key, validate, storage, onConflict = () => {}, onStorageError = showSaveFailure }) {
+export function createVersionedGameStore({ key, validate, storage = getLocalStorageSafely(), onConflict = () => {}, onStorageError = showSaveFailure }) {
   const jsonStore = createSafeJsonStore(key, storage);
   // Keep the identity in memory: browsers can clone sessionStorage when a tab is duplicated.
   const writerId = randomId();
   let revision = 0;
   let lastSeenWriterId = "";
   let conflicted = false;
+  let suspended = false;
 
   function parseStored(value) {
     if (!value) return null;
@@ -57,7 +63,7 @@ export function createVersionedGameStore({ key, validate, storage, onConflict = 
 
   function save(payload) {
     const validPayload = validate(payload);
-    if (!validPayload || conflicted) return false;
+    if (!validPayload || conflicted || suspended) return false;
     const current = parseStored(jsonStore.read());
     const revisionAdvanced = current && current.revision > revision;
     const sameRevisionChangedOwner = current && current.revision === revision && current.writerId
@@ -74,7 +80,7 @@ export function createVersionedGameStore({ key, validate, storage, onConflict = 
     return persisted;
   }
 
-  return { load, save, hasConflict: () => conflicted, isPersistent: jsonStore.isPersistent };
+  return { load, save, suspend: () => { suspended = true; }, hasConflict: () => conflicted, isPersistent: jsonStore.isPersistent };
 }
 
 export function showSaveConflict() {

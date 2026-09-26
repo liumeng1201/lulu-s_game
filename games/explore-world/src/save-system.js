@@ -1,4 +1,5 @@
 import { AREAS, WORLD_SCENE } from "./world-data.js";
+import { getLocalStorageSafely } from "../../../assets/js/safe-storage.js";
 
 const SAVE_KEY = "lulu-explore-world-save";
 const WIDE_SCREEN_SCALE = 4 / 3;
@@ -16,7 +17,7 @@ export function validateExploreSave(value) {
   return null;
 }
 
-export function loadSave(storage = localStorage) {
+export function loadSave(storage = getLocalStorageSafely()) {
   try {
     const value = validateExploreSave(JSON.parse(storage.getItem(SAVE_KEY)));
     if (value) return value;
@@ -24,7 +25,7 @@ export function loadSave(storage = localStorage) {
   return { ...DEFAULT_SAVE };
 }
 
-export function savePosition(sceneId, x, y, storage = localStorage) {
+export function savePosition(sceneId, x, y, storage = getLocalStorageSafely()) {
   const value = { version: 4, sceneId, x: Math.round(x), y: Math.round(y), updatedAt: Date.now() };
   try { storage.setItem(SAVE_KEY, JSON.stringify(value)); }
   catch { /* The active page can continue even when persistence is unavailable. */ }

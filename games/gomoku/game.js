@@ -14,7 +14,7 @@ let audioContext;
 let aiWorker;
 let resumeAiAfterLimit = false;
 let aiWorkerFailed = false;
-const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, storage: localStorage, onConflict: showSaveConflict });
+const gameStore = createVersionedGameStore({ key: SAVE_KEY, validate: validateGomokuSave, onConflict: showSaveConflict });
 
 function saveGame() {
   const value = {
@@ -231,11 +231,11 @@ function restoreUi(value) {
   elements.soundButton.textContent = state.soundOn ? "🔊" : "🔇";
   elements.soundButton.setAttribute("aria-label", state.soundOn ? "关闭声音" : "打开声音");
   drawBoard(); updateStatus();
-  if (state.running && state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
 }
 
-function lockGame() {
-  saveGame();
+function lockGame(reason) {
+  if (reason === "busy") gameStore.suspend();
+  else saveGame();
   resumeAiAfterLimit = state.running && state.mode === "ai" && state.currentPlayer === WHITE;
   cancelAi(); updateStatus();
 }
@@ -276,4 +276,5 @@ restartAiWorker();
 const savedGame = loadGame();
 restoreUi(savedGame);
 window.addEventListener("pagehide", saveGame);
-startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
+const playLimit = startPlayLimit({ onLock: lockGame, onResume: resumeGameAfterLimit });
+if (!playLimit.isLocked() && state.running && state.mode === "ai" && state.currentPlayer === WHITE) requestAiMove();
