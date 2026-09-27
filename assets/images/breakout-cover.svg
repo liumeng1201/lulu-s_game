@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" role="img" aria-labelledby="title">
+  <title id="title">打砖块游戏封面</title>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#7251cc"/><stop offset="1" stop-color="#bd9be3"/></linearGradient>
+    <linearGradient id="brick" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff0a4"/><stop offset="1" stop-color="#ffb95d"/></linearGradient>
+    <filter id="shadow" x="-.2" y="-.3" width="1.4" height="1.7"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#37285e" flood-opacity=".3"/></filter>
+  </defs>
+  <rect width="960" height="600" rx="38" fill="url(#bg)"/>
+  <g fill="#fff" opacity=".3"><circle cx="110" cy="86" r="5"/><circle cx="826" cy="112" r="4"/><circle cx="185" cy="490" r="4"/><circle cx="852" cy="435" r="5"/><circle cx="704" cy="72" r="3"/></g>
+  <g filter="url(#shadow)" stroke="#fff" stroke-opacity=".8" stroke-width="5">
+    <g fill="url(#brick)"><rect x="205" y="126" width="162" height="66" rx="17"/><rect x="385" y="126" width="162" height="66" rx="17"/><rect x="565" y="126" width="162" height="66" rx="17"/><rect x="295" y="208" width="162" height="66" rx="17"/><rect x="475" y="208" width="162" height="66" rx="17"/></g>
+    <path d="M345 447h270" fill="none" stroke="#fff0b0" stroke-linecap="round" stroke-width="28"/>
+    <circle cx="481" cy="365" r="24" fill="#fffef0" stroke="#ffda71" stroke-width="7"/>
+  </g>
+  <path d="m264 348 20-38 20 38-20-10zM685 358l15-29 16 29-16-8z" fill="#ffe681"/>
+</svg>

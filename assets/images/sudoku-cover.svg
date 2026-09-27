@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" role="img" aria-labelledby="title desc">
+  <title id="title">数独游戏封面</title><desc id="desc">柔和紫色背景上的九宫格数字谜题</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#7155c8"/><stop offset="1" stop-color="#df9fbd"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#38245f" flood-opacity=".26"/></filter></defs>
+  <rect width="800" height="480" rx="42" fill="url(#bg)"/><g fill="#fff" opacity=".75"><circle cx="95" cy="83" r="4"/><circle cx="694" cy="92" r="5"/><path d="m684 356 7 14 16 2-12 11 3 16-14-8-14 8 3-16-12-11 16-2z"/></g>
+  <g filter="url(#shadow)"><rect x="246" y="28" width="308" height="424" rx="28" fill="#fffaf1"/><rect x="267" y="49" width="266" height="266" rx="12" fill="#fff" stroke="#7258aa" stroke-width="5"/>
+    <path d="M355.7 49v266M444.3 49v266M267 137.7h266M267 226.3h266" stroke="#aa9bc4" stroke-width="3"/><path d="M297 49v266M326.5 49v266M385.2 49v266M414.8 49v266M473.5 49v266M503 49v266M267 78.5h266M267 108h266M267 167.2h266M267 196.8h266M267 256h266M267 285.5h266" stroke="#ded7e9" stroke-width="1.6"/>
+    <g font-family="system-ui,sans-serif" font-size="25" font-weight="800" text-anchor="middle" dominant-baseline="middle" fill="#554375"><text x="311" y="94">5</text><text x="385" y="94">3</text><text x="473" y="94">7</text><text x="341" y="153">9</text><text x="444" y="153">1</text><text x="503" y="153">4</text><text x="297" y="212">8</text><text x="414" y="212">6</text><text x="473" y="212">2</text><text x="355" y="271">3</text><text x="444" y="271">5</text><text x="503" y="271">9</text></g>
+    <rect x="296" y="344" width="208" height="56" rx="18" fill="#eee8fb"/><text x="400" y="382" font-family="system-ui,sans-serif" font-size="24" font-weight="900" text-anchor="middle" fill="#694ba9">动脑解谜 · 9×9</text>
+  </g>
+</svg>

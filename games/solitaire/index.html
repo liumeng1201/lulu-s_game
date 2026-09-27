@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="畅玩经典克朗代克纸牌接龙，支持摸一张、撤销和本地自动保存。" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>纸牌接龙｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+    <link rel="stylesheet" href="../../assets/css/game-viewport.css" />
+  </head>
+  <body data-game="solitaire">
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">🃏</span><span>纸牌接龙</span></div>
+        <span class="round-time" aria-label="本局用时">⏱ <strong id="timer">00:00</strong></span>
+      </header>
+
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="game-heading">
+          <div><p class="eyebrow">KLONDIKE · DRAW ONE</p><h1 id="gameTitle">纸牌接龙</h1></div>
+          <div class="round-stats" aria-label="本局统计"><div><strong id="moveCount">0</strong><span>步数</span></div><div><strong id="stockCount">24</strong><span>牌堆</span></div></div>
+        </div>
+
+        <div class="board-stage">
+          <div id="board" class="board solitaire-board" role="group" aria-label="克朗代克纸牌接龙棋盘。点击牌后再点目标列或基础牌堆，也可以拖动纸牌。">
+            <button id="stockSlot" class="card-slot stock-slot" type="button" aria-label="从牌堆摸一张牌"></button>
+            <div id="wasteSlot" class="card-slot waste-slot" aria-label="废牌堆"></div>
+            <span class="top-spacer" aria-hidden="true"></span>
+            <div id="foundations" class="foundation-group" aria-label="四个基础牌堆"></div>
+            <div id="tableau" class="tableau-group" aria-label="七列接龙区"></div>
+          </div>
+          <section id="resultPanel" class="overlay-panel hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+            <div class="panel-icon" aria-hidden="true">🎉</div><p class="eyebrow">SOLITAIRE COMPLETE</p>
+            <h2 id="resultTitle">接龙成功！</h2><p id="resultMessage" class="panel-copy"></p>
+            <button id="resultButton" class="primary-button" type="button">再玩一局 <span aria-hidden="true">↻</span></button>
+          </section>
+        </div>
+
+        <div class="game-controls" aria-label="接龙操作">
+          <p id="liveStatus" class="status-message" aria-live="polite">从左上方摸牌开始，按花色从 A 到 K 整理基础牌堆。</p>
+          <div class="control-buttons">
+            <button id="foundationButton" class="control-button" type="button" disabled>⬆ <span>移到基础牌堆</span></button>
+            <button id="undoButton" class="control-button" type="button" disabled>↶ <span>撤销</span></button>
+            <button id="newGameButton" class="control-button" type="button">↻ <span>新局</span></button>
+          </div>
+          <p class="control-tip">红黑交替、数字递减；双击单张牌可尝试移到基础牌堆。</p>
+        </div>
+      </section>
+      <p class="footer-tip">耐心整理每一列，让四种花色依次回家 ✨</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>
