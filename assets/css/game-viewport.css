@@ -1,0 +1,379 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.app-shell > .topbar,
+.app-shell > .footer-tip {
+  flex: none;
+}
+
+.app-shell > .game-card {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+}
+
+.game-card > .board-stage,
+.game-card > .game-area,
+.game-card > .game-stage {
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.game-card > .game-area {
+  height: auto;
+}
+
+.board-stage {
+  container-type: size;
+}
+
+body[data-game="2048"] .board-stage { --board-max-size: 440px; }
+body[data-game="chess"] .board-stage { --board-max-size: 560px; }
+body[data-game="go"] .board-stage { --board-max-size: 630px; }
+body[data-game="gomoku"] .board-stage { --board-max-size: 590px; }
+body[data-game="link-link"] .board-stage { --board-max-size: 590px; }
+body[data-game="tic-tac-toe"] .board-stage { --board-max-size: 560px; }
+
+.board-stage > .board,
+.board-stage > #board {
+  width: min(100%, var(--board-max-size, 590px));
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@supports (width: 1cqh) {
+  .board-stage > .board,
+  .board-stage > #board {
+    width: min(100%, var(--board-max-size, 590px), 100cqh);
+  }
+}
+
+.game-card > .board-stage > .board,
+.game-card > .board-stage > #board,
+.game-card > .game-area,
+.game-card > .game-stage {
+  touch-action: none;
+}
+
+dialog,
+.dialogue-card,
+.leaderboard-dialog {
+  max-height: min(90vh, 90dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-height: 700px) {
+  .app-shell {
+    padding-block: clamp(4px, 1.2vh, 9px);
+  }
+
+  .app-shell > .topbar {
+    margin-bottom: clamp(3px, .8vh, 8px);
+  }
+
+  .app-shell > .footer-tip {
+    margin-top: clamp(3px, .8vh, 9px);
+    font-size: 11px;
+  }
+
+  .game-card > .game-heading {
+    padding-block: clamp(7px, 1.5vh, 14px);
+  }
+
+  .game-card > .scoreboard,
+  .game-card > .statusbar {
+    min-height: 0;
+    padding-block: clamp(4px, .9vh, 8px);
+  }
+
+  .game-card > .board-stage {
+    padding-block: clamp(3px, .8vh, 10px);
+  }
+
+  .game-card > .game-controls,
+  .game-card > .controls {
+    padding-block: clamp(4px, .9vh, 9px);
+  }
+}
+
+@media (max-height: 420px) and (orientation: landscape) {
+  .app-shell > .topbar .brand {
+    display: none;
+  }
+
+  .app-shell > .topbar {
+    margin-bottom: 3px;
+  }
+
+  .app-shell > .footer-tip:not([aria-live]) {
+    display: none;
+  }
+
+  .app-shell > .game-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(118px, 28%);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .game-card > .game-heading,
+  .game-card > .scoreboard,
+  .game-card > .statusbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .game-card > .game-heading {
+    padding: 5px 10px;
+  }
+
+  .game-heading .eyebrow,
+  .game-heading .subtitle {
+    display: none;
+  }
+
+  .game-heading h1 {
+    margin: 0;
+    font-size: clamp(22px, 6vh, 30px);
+    line-height: 1;
+  }
+
+  body[data-game="2048"] .game-heading .score-pills {
+    gap: 4px;
+  }
+
+  body[data-game="2048"] .game-heading .score-pill {
+    min-width: 54px;
+    padding: 3px 5px;
+  }
+
+  body[data-game="2048"] .game-heading .score-pill span {
+    font-size: 8px;
+  }
+
+  body[data-game="2048"] .game-heading .score-pill strong,
+  body[data-game="link-link"] .game-heading .round-stats strong {
+    font-size: 13px;
+  }
+
+  body[data-game="link-link"] .game-heading .round-stats {
+    gap: 4px;
+  }
+
+  body[data-game="link-link"] .game-heading .round-stats div {
+    min-width: 54px;
+    padding: 2px 4px;
+  }
+
+  body[data-game="chess"] .board-stage .cell {
+    font-size: clamp(16px, 5vh, 27px);
+  }
+
+  body[data-game="tic-tac-toe"] .board-stage .cell {
+    font-size: clamp(32px, 10vw, 68px);
+  }
+
+  .game-card > .scoreboard {
+    grid-template-columns: minmax(0, 1fr) minmax(74px, .65fr) minmax(0, 1fr);
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .game-card > .scoreboard .player-card {
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .game-card > .scoreboard .player-card small {
+    font-size: 9px;
+  }
+
+  .game-card > .scoreboard .chess-mark,
+  .game-card > .scoreboard .mark {
+    width: 26px;
+    height: 26px;
+    font-size: 21px;
+  }
+
+  .game-card > .statusbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    min-height: 0;
+    padding: 4px 8px;
+  }
+
+  .game-card > .statusbar p {
+    grid-column: 1;
+    grid-row: 2;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .game-card > .statusbar strong {
+    margin-top: 0;
+    font-size: 13px;
+  }
+
+  .game-card > .statusbar .save-status {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    font-size: 10px;
+  }
+
+  .game-card > .board-stage,
+  .game-card > .game-area,
+  .game-card > .game-stage {
+    grid-column: 1;
+    grid-row: 2;
+    padding: 4px;
+  }
+
+  .game-card > .controls,
+  .game-card > .game-controls,
+  .game-card > .controls-tip {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 5px;
+    border-top: 0;
+    border-left: 2px solid rgba(118, 85, 214, .12);
+    overscroll-behavior: contain;
+  }
+
+  .game-card > .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    gap: 4px;
+  }
+
+  .game-card > .controls .control-button {
+    min-width: 0;
+    min-height: 40px;
+    padding: 5px 3px;
+    font-size: 15px;
+  }
+
+  .game-card > .controls .control-tip,
+  .game-card > .game-controls .control-tip {
+    display: none;
+  }
+
+  .game-card > .game-controls {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .game-card > .game-controls .control-buttons {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .game-card > .game-controls .status-message {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .game-card > .game-controls .control-button {
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .game-card > .game-controls .control-button {
+    min-height: 36px;
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+
+  .game-card > .controls .control-button {
+    min-height: 36px;
+    height: 40px;
+    padding: 4px 3px;
+    font-size: 14px;
+  }
+
+  body[data-game="catch-stars"] .game-card > .controls .control-button {
+    height: 40px;
+  }
+
+  .game-card > .controls .control-button span {
+    font-size: 10px;
+  }
+
+  .game-card > .game-area {
+    height: auto;
+  }
+
+  .game-card > .controls-tip {
+    min-height: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+    border-left-color: #8b603d;
+    font-size: clamp(9px, 2.6vh, 12px);
+  }
+
+  .game-card > .controls-tip span {
+    flex-wrap: wrap;
+  }
+
+  .game-card .overlay-panel {
+    max-height: 100%;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding: 8px;
+    overscroll-behavior: contain;
+  }
+
+  body[data-game="2048"] .board-stage > .board {
+    gap: clamp(2px, .8vh, 4px);
+    padding: clamp(2px, 1vh, 4px);
+  }
+
+  body[data-game="2048"] .board-stage > .board .cell {
+    font-size: clamp(15px, 7vh, 28px);
+  }
+
+  body[data-game="link-link"] .board-stage > .board {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  body[data-game="link-link"] .board-stage > .board .tile {
+    font-size: clamp(10px, 3.5vh, 16px);
+  }
+}
