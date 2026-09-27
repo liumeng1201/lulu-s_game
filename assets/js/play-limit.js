@@ -1,8 +1,8 @@
 import { createSafeJsonStore, getLocalStorageSafely } from "./safe-storage.js";
 
 const STORAGE_KEY = "lulu-play-limit-v1";
-const PLAY_LIMIT_MS = 10 * 60 * 1000;
-const REST_DURATION_MS = 60 * 60 * 1000;
+const PLAY_LIMIT_MS = 15 * 60 * 1000;
+const REST_DURATION_MS = 30 * 60 * 1000;
 const LEASE_MS = 3000;
 const TICK_MS = 1000;
 
@@ -91,8 +91,8 @@ function createOverlay() {
       <div class="play-limit-mascot" aria-hidden="true">🌙</div>
       <p class="play-limit-eyebrow">休息时间</p>
       <h2 id="playLimitTitle">眼睛也要放个假</h2>
-      <p class="play-limit-message">今天已经认真玩了 10 分钟，休息一会儿吧！</p>
-      <strong class="play-limit-countdown" role="timer">01:00:00</strong>
+      <p class="play-limit-message">今天已经认真玩了 15 分钟，休息一会儿吧！</p>
+      <strong class="play-limit-countdown" role="timer">00:30:00</strong>
       <p class="play-limit-hint">倒计时结束后就可以回来继续游戏。</p>
       <button class="play-limit-continue" type="button" hidden>继续游戏</button>
       <a class="play-limit-home" href="${new URL("../../index.html", import.meta.url).href}">返回游戏大厅</a>
@@ -169,7 +169,7 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
       continueButton.textContent = "刷新并继续";
     } else if (remaining > 0) {
       title.textContent = "眼睛也要放个假";
-      message.textContent = "今天已经认真玩了 10 分钟，休息一会儿吧！";
+      message.textContent = "今天已经认真玩了 15 分钟，休息一会儿吧！";
       countdown.hidden = false;
       countdown.textContent = formatRemaining(remaining);
       hint.textContent = "倒计时结束后就可以回来继续游戏。";
@@ -181,7 +181,7 @@ export function startPlayLimit({ onLock = () => {}, onResume = () => {}, storage
         ? "休息结束啦。刷新页面以载入最新进度后继续游戏。"
         : "欢迎回来，准备好后可以继续刚才的游戏。";
       countdown.hidden = true;
-      hint.textContent = staleGameState ? "刷新后会载入另一标签页保存的进度。" : "点击按钮开始新一轮 10 分钟游戏时间。";
+      hint.textContent = staleGameState ? "刷新后会载入另一标签页保存的进度。" : "点击按钮开始新一轮 15 分钟游戏时间。";
       continueButton.hidden = false;
       continueButton.textContent = staleGameState ? "刷新并继续" : "继续游戏";
       if (becameReady) continueButton.focus();

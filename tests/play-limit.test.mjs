@@ -3,12 +3,12 @@ import assert from "node:assert/strict";
 import { PLAY_LIMIT_MS, REST_DURATION_MS, defaultPlayLimitState, formatRemaining, normalizePlayLimitState, resumePlayLimitState, transitionPlayLimit } from "../assets/js/play-limit.js";
 
 test("play limit uses the agreed durations", () => {
-  assert.equal(PLAY_LIMIT_MS, 10 * 60 * 1000);
-  assert.equal(REST_DURATION_MS, 60 * 60 * 1000);
+  assert.equal(PLAY_LIMIT_MS, 15 * 60 * 1000);
+  assert.equal(REST_DURATION_MS, 30 * 60 * 1000);
 });
 
 test("formats countdown without losing partial seconds", () => {
-  assert.equal(formatRemaining(60 * 60 * 1000), "01:00:00");
+  assert.equal(formatRemaining(30 * 60 * 1000), "00:30:00");
   assert.equal(formatRemaining(60_001), "00:01:01");
   assert.equal(formatRemaining(-1), "00:00:00");
 });
@@ -63,7 +63,7 @@ test("a tab that was busy must reload before taking over the latest saved game",
   assert.equal(reloaded.state.ownerId, "new-b");
 });
 
-test("ten visible minutes starts a one hour rest period", () => {
+test("fifteen visible minutes starts a thirty-minute rest period", () => {
   const acquired = transitionPlayLimit(defaultPlayLimitState(), { now: 1000, tabId: "a", visible: true });
   const limited = transitionPlayLimit(acquired.state, { now: 1000 + PLAY_LIMIT_MS, tabId: "a", visible: true });
   assert.equal(limited.status, "resting");
