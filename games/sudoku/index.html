@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="生成唯一解的数独挑战，支持笔记、提示和自动保存。" />
+    <meta name="theme-color" content="#7655d6" />
+    <title>数独｜六六游戏屋</title>
+    <link rel="stylesheet" href="game.css" />
+    <link rel="stylesheet" href="../../assets/css/game-viewport.css" />
+  </head>
+  <body data-game="sudoku">
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="back-link" href="../../index.html" aria-label="返回游戏大厅">← <span>游戏大厅</span></a>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">🔢</span><span>数独</span></div>
+        <span class="round-time" aria-label="本局用时">⏱ <strong id="timer">00:00</strong></span>
+      </header>
+
+      <section class="game-card" aria-labelledby="gameTitle">
+        <div class="scoreboard">
+          <div class="difficulty-picker" role="group" aria-label="选择数独难度">
+            <span>难度</span>
+            <button class="difficulty-button" type="button" data-difficulty="easy">简单</button>
+            <button class="difficulty-button" type="button" data-difficulty="medium">中等</button>
+            <button class="difficulty-button" type="button" data-difficulty="hard">困难</button>
+          </div>
+          <div class="game-heading"><h1 id="gameTitle">九宫格挑战</h1><span>提示 <strong id="hintsRemaining">3</strong></span></div>
+        </div>
+
+        <div class="board-stage">
+          <div id="board" class="board sudoku-board" role="grid" aria-label="数独九宫格。点击格子后，输入数字或使用键盘 1 到 9；方向键移动选中格。">
+          </div>
+          <section id="resultPanel" class="overlay-panel hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+            <div class="panel-icon" aria-hidden="true">🎉</div>
+            <p class="eyebrow">PUZZLE SOLVED</p>
+            <h2 id="resultTitle">数独完成！</h2>
+            <p id="resultMessage" class="panel-copy"></p>
+            <button id="resultButton" class="primary-button" type="button">再来一局 <span aria-hidden="true">↻</span></button>
+          </section>
+        </div>
+
+        <div class="game-tools controls game-controls" aria-label="数独输入与操作">
+          <div id="numberPad" class="number-pad" aria-label="输入数字">
+            <button type="button" data-digit="1">1</button><button type="button" data-digit="2">2</button><button type="button" data-digit="3">3</button>
+            <button type="button" data-digit="4">4</button><button type="button" data-digit="5">5</button><button type="button" data-digit="6">6</button>
+            <button type="button" data-digit="7">7</button><button type="button" data-digit="8">8</button><button type="button" data-digit="9">9</button>
+          </div>
+          <div class="action-row">
+            <button id="noteButton" class="action-button" type="button" aria-pressed="false">✎ <span>笔记</span></button>
+            <button id="eraseButton" class="action-button" type="button">⌫ <span>擦除</span></button>
+            <button id="undoButton" class="action-button" type="button" disabled>↶ <span>撤销</span></button>
+            <button id="hintButton" class="action-button" type="button">💡 <span>提示</span></button>
+            <button id="newGameButton" class="action-button" type="button">＋ <span>新题</span></button>
+          </div>
+          <p id="liveStatus" class="control-tip" aria-live="polite">选中空格后输入数字；笔记模式可记录候选数字。</p>
+        </div>
+      </section>
+      <p class="footer-tip">每一行、每一列和每个宫都要填入 1 到 9 ✨</p>
+    </main>
+    <script type="module" src="game.js"></script>
+  </body>
+</html>

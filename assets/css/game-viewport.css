@@ -54,12 +54,33 @@ body[data-game="go"] .board-stage { --board-max-size: 630px; }
 body[data-game="gomoku"] .board-stage { --board-max-size: 590px; }
 body[data-game="link-link"] .board-stage { --board-max-size: 590px; }
 body[data-game="tic-tac-toe"] .board-stage { --board-max-size: 560px; }
+body[data-game="klotski"] .board-stage { --board-max-size: 360px; }
+body[data-game="sudoku"] .board-stage { --board-max-size: 520px; }
+body[data-game="solitaire"] .board-stage { --board-max-size: 980px; }
 
 .board-stage > .board,
 .board-stage > #board {
   width: min(100%, var(--board-max-size, 590px));
   max-width: 100%;
   max-height: 100%;
+}
+
+body[data-game="klotski"] .board-stage > #board.klotski-board {
+  width: min(100%, 360px, 45vh);
+  height: auto;
+  max-height: 100%;
+}
+
+@media (max-height: 700px) {
+  body[data-game="klotski"] .board-stage > #board.klotski-board {
+    width: min(100%, 360px, 40vh);
+  }
+}
+
+body[data-game="solitaire"] .board-stage > #board.solitaire-board {
+  width: max-content;
+  max-width: 100%;
+  max-height: none;
 }
 
 @supports (width: 1cqh) {
@@ -119,6 +140,10 @@ dialog,
 }
 
 @media (max-height: 420px) and (orientation: landscape) {
+  body[data-game="klotski"] .game-card > .board-stage > #board.klotski-board {
+    width: min(100%, 360px, 55vh);
+  }
+
   .app-shell > .topbar .brand {
     display: none;
   }
