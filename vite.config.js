@@ -15,6 +15,10 @@ export default defineConfig({
         resolve(import.meta.dirname, "games/explore-world/index.html"),
         resolve(import.meta.dirname, "games/2048/index.html"),
         resolve(import.meta.dirname, "games/link-link/index.html"),
+        resolve(import.meta.dirname, "games/breakout/index.html"),
+        resolve(import.meta.dirname, "games/sudoku/index.html"),
+        resolve(import.meta.dirname, "games/klotski/index.html"),
+        resolve(import.meta.dirname, "games/solitaire/index.html"),
       ],
       output: {
         manualChunks(id) {
