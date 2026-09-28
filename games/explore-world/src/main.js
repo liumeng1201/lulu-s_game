@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import worldMapUrl from "../assets/village-map-v2.png";
 import { CHARACTERS, characterFlipsHorizontally, characterFrame, characterPortrait } from "./character-data.js";
+import { isWithinInteractionDistance } from "./interaction-rules.js";
 import { AREAS, LOCATIONS, WORLD_SCENE, characterIdsForScene } from "./world-data.js";
 import { SAVE_KEY, DEFAULT_SAVE, validateExploreSave } from "./save-system.js";
 import { startPlayLimit } from "../../../assets/js/play-limit.js";
@@ -303,7 +304,10 @@ class AreaScene extends Phaser.Scene {
       const dialogueNpc = { ...npc };
       person.setData("interactiveRole", "npc").setData("npc", dialogueNpc).setData("home", { x, y: Math.min(y, npcBounds.maxY) });
       hitZone.setData("interactiveRole", "npc");
-      const activate = () => showDialogue(dialogueNpc);
+      const activate = () => {
+        if (!isWithinInteractionDistance(this.player, person, INTERACTION_DISTANCE)) return;
+        showDialogue(dialogueNpc);
+      };
       hitZone.on("pointerup", (_p, _x, _y, event) => { event.stopPropagation(); activate(); });
       person.setData("hitZone", hitZone);
       this.interactables.push({ object: person, activate });
@@ -343,7 +347,7 @@ class AreaScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keys.E)) {
       const nearby = this.interactables
         .map((entry) => ({ ...entry, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, entry.object.x, entry.object.y) }))
-        .filter((entry) => entry.distance <= INTERACTION_DISTANCE)
+        .filter((entry) => isWithinInteractionDistance(this.player, entry.object, INTERACTION_DISTANCE))
         .sort((a, b) => a.distance - b.distance)[0];
       nearby?.activate();
       return;

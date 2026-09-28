@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { BLACK, EMPTY, WHITE, applyMove, chooseAiMove, createBoard, generateLegalMoves, getAutomaticDrawReason, getGameStatus, initialPosition, isInCheck, isInsufficientMaterial, movesEqual, otherColor, positionKey, typeOf } from "../games/chess/engine.mjs";
 import { validateChessSave } from "../games/chess/save-state.mjs";
+import { getDrawOfferAction, resolveDrawOfferAfterMove } from "../games/chess/draw-offer.mjs";
 
 const emptyBoard = () => Array.from({ length: 8 }, () => Array(8).fill(EMPTY));
 const findMove = (board, position, color, from, to) => generateLegalMoves(board, position, color).find((move) => move.from.row === from[0] && move.from.col === from[1] && move.to.row === to[0] && move.to.col === to[1]);
@@ -68,8 +69,19 @@ test("detects checkmate, stalemate, and insufficient material", () => {
   const stalemate = emptyBoard(); stalemate[0][7] = "bK"; stalemate[1][5] = "wQ"; stalemate[2][5] = "wK";
   assert.equal(getGameStatus(stalemate, initialPosition(), BLACK).reason, "stalemate");
   const kings = emptyBoard(); kings[0][0] = "bK"; kings[7][7] = "wK"; assert.equal(isInsufficientMaterial(kings), true);
-  const twoKnights = emptyBoard(); twoKnights[0][0] = "bK"; twoKnights[7][7] = "wK"; twoKnights[5][5] = "wN"; twoKnights[5][6] = "wN";
-  assert.equal(isInsufficientMaterial(twoKnights), true);
+  const twoKnights = emptyBoard(); twoKnights[0][0] = "bK"; twoKnights[1][2] = "wK"; twoKnights[2][2] = "wN"; twoKnights[4][2] = "wN";
+  assert.equal(isInsufficientMaterial(twoKnights), false);
+  const matingMove = findMove(twoKnights, initialPosition(), WHITE, [4, 2], [2, 1]);
+  assert.ok(matingMove, "the position must allow Nb6#");
+  assert.equal(getGameStatus(applyMove(twoKnights, initialPosition(), matingMove).board, initialPosition(), BLACK).reason, "checkmate");
+});
+
+test("draw offers can be withdrawn, accepted on the opponent's turn, or declined by moving", () => {
+  assert.equal(getDrawOfferAction(null, WHITE), "offer");
+  assert.equal(getDrawOfferAction(WHITE, WHITE), "withdraw");
+  assert.equal(getDrawOfferAction(WHITE, BLACK), "accept");
+  assert.equal(resolveDrawOfferAfterMove(WHITE, WHITE), WHITE, "the offering player keeps the offer with their move");
+  assert.equal(resolveDrawOfferAfterMove(WHITE, BLACK), null, "the opponent declines by making a move");
 });
 
 test("recognizes threefold repetition and the fifty-move rule", () => {
@@ -106,4 +118,7 @@ test("persists automatic draws and a pending draw offer", () => {
   const opening = findMove(createBoard(), initialPosition(), WHITE, [6, 4], [4, 4]); const afterOpening = replayMoves([opening]);
   const offer = { version: 2, mode: "pvp", difficulty: "medium", ...afterOpening, history: [opening], running: true, winner: null, reason: null, soundOn: true, cursor: { row: 4, col: 4 }, modeOpen: false, resultOpen: false, drawOfferBy: WHITE };
   assert.equal(validateChessSave(offer).drawOfferBy, WHITE);
+  const initialBoard = createBoard(); const initial = initialPosition();
+  const beforeMoveOffer = { version: 2, mode: "pvp", difficulty: "medium", board: initialBoard, position: initial, currentPlayer: WHITE, history: [], positionHistory: [positionKey(initialBoard, initial, WHITE)], halfmoveClock: 0, running: true, winner: null, reason: null, soundOn: true, cursor: { row: 7, col: 0 }, modeOpen: false, resultOpen: false, drawOfferBy: WHITE };
+  assert.equal(validateChessSave(beforeMoveOffer).drawOfferBy, WHITE, "an offer staged before the offering player's move survives reload");
 });
