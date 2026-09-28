@@ -60,3 +60,215 @@ body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: hidden; color
   .controls { padding-block: 5px; }
   .footer-tip { margin-top: 4px; }
 }
+
+/* Warm wood-and-jade presentation for the Klotski board. */
+body[data-game="klotski"] {
+  --klotski-ink: #40352b;
+  --klotski-muted: #887a67;
+  --klotski-wood: #805239;
+  --klotski-gold: #d9ad68;
+  color: var(--klotski-ink);
+  background:
+    radial-gradient(ellipse at 12% 12%, rgba(246, 220, 160, .44), transparent 36%),
+    radial-gradient(ellipse at 88% 85%, rgba(166, 190, 143, .35), transparent 34%),
+    linear-gradient(145deg, #f5f0e4, #e9e2d2 55%, #e4eadb);
+}
+
+body[data-game="klotski"] .app-shell { width: min(100% - 36px, 760px); }
+body[data-game="klotski"] .topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+body[data-game="klotski"] .back-link { justify-self: start; color: #66513c; border-color: rgba(124, 91, 53, .16); background: rgba(255, 252, 244, .9); box-shadow: 0 3px 10px rgba(74, 54, 35, .1); }
+body[data-game="klotski"] .brand { justify-self: center; color: #513d2d; }
+body[data-game="klotski"] .brand-mark { border-color: #fff9e9; background: linear-gradient(145deg, #f4d990, #d9a95e); box-shadow: 0 4px 10px rgba(86, 57, 29, .18); }
+body[data-game="klotski"] .round-badge { justify-self: end; color: #6e5739; border: 1px solid rgba(163, 121, 57, .2); background: #f5e9ca; }
+body[data-game="klotski"] .game-card { border: 6px solid #fffaf0; border-radius: 26px; background: #fffaf0; box-shadow: 0 16px 38px rgba(74, 57, 37, .16), 0 2px 5px rgba(74, 57, 37, .08); }
+
+body[data-game="klotski"] .game-card > .scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(100px, .7fr) minmax(0, 1fr);
+  gap: 9px;
+  min-height: 72px;
+  padding: 10px 13px;
+  background: #fffcf5;
+}
+
+body[data-game="klotski"] .scoreboard .stat-card,
+body[data-game="klotski"] .scoreboard .goal-card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 0 8px;
+  padding: 8px 10px;
+  border: 1px solid #eee2cc;
+  border-radius: 14px;
+  background: #f8f2e6;
+}
+
+body[data-game="klotski"] .scoreboard .moves-stat { background: #f0f3e8; border-color: #e1e7d5; }
+body[data-game="klotski"] .scoreboard .goal-card { background: #f7ead7; border-color: #eed9b8; }
+body[data-game="klotski"] .scoreboard .stat-symbol { display: grid; width: 32px; height: 32px; grid-row: 1; place-items: center; border-radius: 10px; background: rgba(255, 255, 255, .72); font-size: 17px; }
+body[data-game="klotski"] .scoreboard .stat-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+body[data-game="klotski"] .scoreboard .stat-copy > span { color: var(--klotski-muted); font-size: 10px; font-weight: 800; }
+body[data-game="klotski"] .scoreboard .stat-copy > strong { overflow: hidden; color: #594632; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+body[data-game="klotski"] .scoreboard .moves-stat .stat-copy > strong { color: #507050; font-size: 19px; line-height: 1; }
+body[data-game="klotski"] .scoreboard .goal-card .stat-copy > strong { color: #835c32; font-size: 12px; }
+
+body[data-game="klotski"] .game-card > .board-stage {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(10px, 2vw, 18px);
+  background: linear-gradient(145deg, #dce5cc, #cbd8b7 54%, #bbcba7);
+}
+
+body[data-game="klotski"] .board-stage::before {
+  opacity: .34;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, .85) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+body[data-game="klotski"] .klotski-board {
+  gap: 5px;
+  padding: 8px;
+  border: 6px solid #754a31;
+  border-radius: 18px;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 230, 185, .08) 0 2px, transparent 2px 8px),
+    linear-gradient(135deg, #9b6944, #805235 56%, #70472f);
+  box-shadow: inset 0 0 0 2px rgba(238, 195, 125, .72), 0 15px 28px rgba(57, 56, 39, .28);
+}
+
+body[data-game="klotski"] .piece-slot { position: relative; z-index: 1; min-width: 0; min-height: 0; }
+body[data-game="klotski"] .piece {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  padding: 5px;
+  border: 2px solid rgba(255, 249, 226, .9);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 -5px 0 rgba(52, 38, 29, .15), 0 3px 6px rgba(48, 35, 27, .23);
+  line-height: 1.2;
+  transition: filter .14s ease, transform .14s ease, box-shadow .14s ease;
+}
+
+body[data-game="klotski"] .piece::before {
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255, 249, 229, .38);
+  border-radius: 7px;
+  content: "";
+  pointer-events: none;
+}
+
+body[data-game="klotski"] .piece.cao { color: #fff4d6; border-color: #f1d184; background: linear-gradient(150deg, #c75a43, #a43e32 62%, #87362f); text-shadow: 0 1px 1px rgba(70, 27, 24, .3); }
+body[data-game="klotski"] .piece.cao::before { inset: 7px; border-color: rgba(255, 226, 154, .64); }
+body[data-game="klotski"] .piece.general { color: #f8f2df; background: linear-gradient(145deg, #6c9290, #4e7373 58%, #3c6266); text-shadow: 0 1px 1px rgba(35, 58, 57, .32); }
+body[data-game="klotski"] .piece.horizontal { color: #fff7e9; background: linear-gradient(145deg, #d39a58, #b77b42 62%, #99633a); text-shadow: 0 1px 1px rgba(83, 50, 26, .28); }
+body[data-game="klotski"] .piece.soldier { color: #426047; border-color: rgba(245, 248, 222, .95); background: linear-gradient(145deg, #d9e5bb, #b8cb94 65%, #9bb47a); font-size: clamp(12px, 2.4vw, 16px); }
+body[data-game="klotski"] .piece:hover { filter: brightness(1.06); }
+body[data-game="klotski"] .piece:active { transform: translateY(1px); }
+body[data-game="klotski"] .piece.selected { z-index: 2; outline: 3px solid #ffe07b; outline-offset: 1px; filter: brightness(1.08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .56), inset 0 -5px 0 rgba(52, 38, 29, .14), 0 5px 10px rgba(48, 35, 27, .3); }
+body[data-game="klotski"] .piece:focus-visible { outline: 3px solid #ffe07b; outline-offset: 1px; }
+body[data-game="klotski"] .empty-cell { border: 1px dashed rgba(255, 235, 201, .42); border-radius: 8px; background: rgba(42, 29, 24, .12); }
+body[data-game="klotski"] .exit-marker { bottom: 2px; padding: 4px 5px; color: #fff6d9; border: 1px solid rgba(255, 230, 177, .65); border-radius: 0 0 9px 9px; background: #4d7054; box-shadow: 0 2px 5px rgba(37, 44, 30, .25); font-size: 10px; letter-spacing: .08em; }
+
+body[data-game="klotski"] .game-card > .controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-top: 1px solid #eee4d3;
+  background: #fffcf5;
+}
+
+body[data-game="klotski"] .move-pad {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(2, 40px);
+  gap: 4px;
+}
+
+body[data-game="klotski"] .up-button { grid-area: 1 / 2; }
+body[data-game="klotski"] .left-button { grid-area: 2 / 1; }
+body[data-game="klotski"] .down-button { grid-area: 2 / 2; }
+body[data-game="klotski"] .right-button { grid-area: 2 / 3; }
+body[data-game="klotski"] .control-actions { display: flex; grid-column: 3; grid-row: 1; justify-self: end; gap: 7px; }
+body[data-game="klotski"] .control-tip { grid-column: 1; grid-row: 1; max-width: 190px; margin: 0; color: #796d59; text-align: left; font-size: 11px; line-height: 1.55; }
+body[data-game="klotski"] .control-button { min-width: 0; min-height: 40px; padding: 6px 10px; color: #5e4c37; border: 1px solid #e5d7bd; border-radius: 12px; background: linear-gradient(#fffdf7, #f1e8d8); box-shadow: 0 3px 0 #dbc9a9; font-family: inherit; font-size: 15px; transition: transform .12s ease, background .12s ease, box-shadow .12s ease; }
+body[data-game="klotski"] .direction-button { width: 42px; height: 40px; padding: 0; color: #52694c; border-color: #d7dfc9; border-radius: 11px; background: linear-gradient(#f8fbef, #e4ecd8); box-shadow: 0 3px 0 #c4d1b3; font-size: 20px; }
+body[data-game="klotski"] .control-button:hover:not(:disabled) { transform: translateY(-1px); background: #fff8e9; }
+body[data-game="klotski"] .control-button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #dbc9a9; }
+body[data-game="klotski"] .control-button:disabled { opacity: .46; }
+body[data-game="klotski"] .control-button:focus-visible { outline: 3px solid #d5a94f; outline-offset: 2px; }
+body[data-game="klotski"] .action-button { min-width: 78px; }
+body[data-game="klotski"] .action-button span { font-size: 11px; }
+body[data-game="klotski"] .overlay-panel { border-color: rgba(255, 249, 230, .92); background: rgba(55, 79, 60, .94); box-shadow: 0 8px 26px rgba(42, 52, 35, .25); }
+body[data-game="klotski"] .overlay-panel .eyebrow { color: #f5d782; }
+body[data-game="klotski"] .primary-button { color: #493b2b; background: linear-gradient(#ffe69a, #e8b957); box-shadow: 0 4px 0 #bb8841; }
+body[data-game="klotski"] .footer-tip { color: #77725c; }
+
+@media (max-width: 600px) {
+  body[data-game="klotski"] .app-shell { width: 100%; padding: 9px 10px; }
+  body[data-game="klotski"] .topbar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 5px; margin: 0 1px 7px; }
+  body[data-game="klotski"] .back-link { min-height: 38px; gap: 4px; padding: 5px 7px; border-radius: 11px; font-size: 11px; }
+  body[data-game="klotski"] .brand { gap: 5px; font-size: 16px; }
+  body[data-game="klotski"] .brand-mark { width: 34px; height: 34px; border-radius: 11px; font-size: 19px; }
+  body[data-game="klotski"] .round-badge { padding: 6px 7px; font-size: 10px; }
+  body[data-game="klotski"] .game-card { border-width: 4px; border-radius: 20px; }
+  body[data-game="klotski"] .game-card > .scoreboard { grid-template-columns: minmax(0, 1.3fr) minmax(74px, .7fr); gap: 5px; min-height: 0; padding: 6px; }
+  body[data-game="klotski"] .scoreboard .stat-card,
+  body[data-game="klotski"] .scoreboard .goal-card { grid-template-columns: 27px minmax(0, 1fr); gap: 0 5px; padding: 5px 6px; border-radius: 11px; }
+  body[data-game="klotski"] .scoreboard .stat-symbol { width: 25px; height: 25px; border-radius: 8px; font-size: 14px; }
+  body[data-game="klotski"] .scoreboard .stat-copy { gap: 1px; }
+  body[data-game="klotski"] .scoreboard .stat-copy > span { font-size: 8px; }
+  body[data-game="klotski"] .scoreboard .stat-copy > strong { font-size: 11px; }
+  body[data-game="klotski"] .scoreboard .moves-stat .stat-copy > strong { font-size: 16px; }
+  body[data-game="klotski"] .scoreboard .goal-card { grid-column: 1 / -1; min-height: 34px; }
+  body[data-game="klotski"] .scoreboard .goal-card .stat-copy { flex-direction: row; align-items: baseline; gap: 7px; }
+  body[data-game="klotski"] .scoreboard .goal-card .stat-copy > strong { font-size: 10px; }
+  body[data-game="klotski"] .game-card > .board-stage { padding: 7px 4px; }
+  body[data-game="klotski"] .klotski-board { gap: 4px; padding: 6px; border-width: 5px; border-radius: 15px; }
+  body[data-game="klotski"] .piece { padding: 3px; border-radius: 9px; font-size: clamp(11px, 4vw, 16px); }
+  body[data-game="klotski"] .piece.cao { font-size: clamp(16px, 5vw, 23px); }
+  body[data-game="klotski"] .piece.soldier { font-size: 12px; }
+  body[data-game="klotski"] .piece::before { inset: 4px; }
+  body[data-game="klotski"] .piece.cao::before { inset: 6px; }
+  body[data-game="klotski"] .game-card > .controls { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 6px; padding: 7px 8px; }
+  body[data-game="klotski"] .move-pad { grid-column: 1; grid-row: 1; grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(2, 34px); gap: 3px; justify-self: center; }
+  body[data-game="klotski"] .control-actions { display: grid; grid-column: 2; grid-row: 1; grid-template-columns: 1fr; align-content: center; gap: 5px; }
+  body[data-game="klotski"] .control-tip { grid-column: 1 / -1; grid-row: 2; justify-self: center; max-width: none; text-align: center; font-size: 9px; }
+  body[data-game="klotski"] .direction-button { width: 36px; height: 34px; border-radius: 9px; font-size: 17px; }
+  body[data-game="klotski"] .action-button { min-width: 72px; min-height: 33px; padding: 4px 7px; border-radius: 10px; font-size: 13px; }
+  body[data-game="klotski"] .action-button span { font-size: 10px; }
+  body[data-game="klotski"] .footer-tip { margin-top: 4px; font-size: 9px; }
+}
+
+@media (max-height: 700px) {
+  body[data-game="klotski"] .game-card > .scoreboard { min-height: 0; padding-block: 6px; }
+  body[data-game="klotski"] .game-card > .controls { padding-block: 7px; }
+}
+
+@media (max-height: 420px) and (orientation: landscape) {
+  body[data-game="klotski"] .app-shell { width: min(100% - 14px, 900px); padding-block: 3px; }
+  body[data-game="klotski"] .game-card > .scoreboard { grid-template-columns: minmax(0, 1.2fr) minmax(74px, .7fr) minmax(0, 1fr); padding: 4px 7px; }
+  body[data-game="klotski"] .scoreboard .stat-card,
+  body[data-game="klotski"] .scoreboard .goal-card { grid-template-columns: 24px minmax(0, 1fr); gap: 0 4px; padding: 3px 5px; }
+  body[data-game="klotski"] .scoreboard .stat-symbol { width: 22px; height: 22px; font-size: 12px; }
+  body[data-game="klotski"] .scoreboard .stat-copy > span { font-size: 7px; }
+  body[data-game="klotski"] .scoreboard .stat-copy > strong,
+  body[data-game="klotski"] .scoreboard .goal-card .stat-copy > strong { font-size: 9px; }
+  body[data-game="klotski"] .scoreboard .goal-card { grid-column: auto; min-height: 0; }
+  body[data-game="klotski"] .scoreboard .goal-card .stat-copy { display: flex; flex-direction: column; gap: 1px; }
+  body[data-game="klotski"] .game-card > .board-stage { padding: 3px; }
+  body[data-game="klotski"] .klotski-board { gap: 3px; padding: 4px; border-width: 4px; border-radius: 12px; }
+  body[data-game="klotski"] .piece { border-radius: 7px; font-size: clamp(10px, 3vh, 14px); }
+  body[data-game="klotski"] .piece.cao { font-size: clamp(15px, 4.5vh, 20px); }
+  body[data-game="klotski"] .game-card > .controls { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: center; gap: 7px; padding: 5px; }
+  body[data-game="klotski"] .move-pad { grid-column: 1; grid-row: 1; grid-template-columns: repeat(3, 32px); grid-template-rows: repeat(2, 30px); gap: 3px; justify-self: center; }
+  body[data-game="klotski"] .control-actions { grid-column: 1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  body[data-game="klotski"] .direction-button { width: 32px; height: 30px; font-size: 15px; }
+  body[data-game="klotski"] .action-button { min-width: 0; min-height: 30px; padding: 3px 4px; font-size: 10px; }
+}
