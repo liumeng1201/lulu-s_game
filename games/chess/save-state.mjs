@@ -36,7 +36,7 @@ export function validateChessSave(value) {
   if (!isLegacy && (value.halfmoveClock !== replayed.halfmoveClock || JSON.stringify(value.positionHistory) !== JSON.stringify(replayed.positionHistory))) return null;
   const drawOfferBy = value.drawOfferBy == null ? null : value.drawOfferBy;
   if (!isLegacy && drawOfferBy !== null && !validColor(drawOfferBy)) return null;
-  if (drawOfferBy && (value.mode !== "pvp" || drawOfferBy === replayed.currentPlayer || result.finished)) return null;
+  if (drawOfferBy && (value.mode !== "pvp" || result.finished)) return null;
   const agreed = value.reason === "agreement";
   if (agreed && (!isLegacy && !drawOfferBy && value.running)) return null;
   const finalResult = agreed ? { finished: true, winner: null, reason: "agreement" } : result;
