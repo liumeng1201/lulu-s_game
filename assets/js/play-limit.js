@@ -33,6 +33,10 @@ export function formatRemaining(milliseconds) {
   return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
+export function resolveGameHallUrl(currentPageUrl) {
+  return new URL("../../index.html", currentPageUrl).href;
+}
+
 export function transitionPlayLimit(value, { now, tabId: owner, visible, allowAcquire = true }) {
   const state = normalizePlayLimitState(value);
   let changed = false;
@@ -95,7 +99,7 @@ function createOverlay() {
       <strong class="play-limit-countdown" role="timer">00:30:00</strong>
       <p class="play-limit-hint">倒计时结束后就可以回来继续游戏。</p>
       <button class="play-limit-continue" type="button" hidden>继续游戏</button>
-      <a class="play-limit-home" href="${new URL("../../index.html", import.meta.url).href}">返回游戏大厅</a>
+      <a class="play-limit-home" href="${resolveGameHallUrl(window.location.href)}">返回游戏大厅</a>
     </div>`;
   document.body.append(overlay);
   return overlay;

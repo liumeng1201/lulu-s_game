@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PLAY_LIMIT_MS, REST_DURATION_MS, defaultPlayLimitState, formatRemaining, normalizePlayLimitState, resumePlayLimitState, transitionPlayLimit } from "../assets/js/play-limit.js";
+import { PLAY_LIMIT_MS, REST_DURATION_MS, defaultPlayLimitState, formatRemaining, normalizePlayLimitState, resolveGameHallUrl, resumePlayLimitState, transitionPlayLimit } from "../assets/js/play-limit.js";
 
 test("play limit uses the agreed durations", () => {
   assert.equal(PLAY_LIMIT_MS, 15 * 60 * 1000);
@@ -11,6 +11,11 @@ test("formats countdown without losing partial seconds", () => {
   assert.equal(formatRemaining(30 * 60 * 1000), "00:30:00");
   assert.equal(formatRemaining(60_001), "00:01:01");
   assert.equal(formatRemaining(-1), "00:00:00");
+});
+
+test("resolves the rest-dialog home link from game pages without losing deployment subpaths", () => {
+  assert.equal(resolveGameHallUrl("http://127.0.0.1:5173/games/chess/index.html"), "http://127.0.0.1:5173/index.html");
+  assert.equal(resolveGameHallUrl("https://player.github.io/lulu-s_game/games/go/index.html"), "https://player.github.io/lulu-s_game/index.html");
 });
 
 test("invalid persisted state safely resets", () => {
